@@ -39,6 +39,12 @@ export function findTask(taskId) {
 /* ── Group actions ── */
 export function createGroup(name) {
   const board = b(); if (!board) return
+  // Find next free row in col 0
+  const usedRows = board.groups
+    .filter(g => (g.gridCol ?? 0) === 0)
+    .map(g => g.gridRow ?? 0)
+  let nextRow = 0
+  while (usedRows.includes(nextRow)) nextRow++
   const id = _nextGroupId()
   board.groups.push({
     id,
@@ -50,7 +56,44 @@ export function createGroup(name) {
     status: 'not_started',
     labelIds: [],
     color: null,
+    mainColor: null,
+    gridRow: nextRow,
+    gridCol: 0,
   })
+  _save()
+}
+
+// After any grid move, pack each column so there are no row gaps (rows start at 0, no holes).
+function compactColumns(board) {
+  const cols = {}
+  for (const g of board.groups) {
+    const c = g.gridCol ?? 0
+    if (!cols[c]) cols[c] = []
+    cols[c].push(g)
+  }
+  for (const colGroups of Object.values(cols)) {
+    colGroups.sort((a, b) => (a.gridRow ?? 0) - (b.gridRow ?? 0))
+    colGroups.forEach((g, i) => { g.gridRow = i })
+  }
+}
+
+export function moveGroupToGrid(fromId, toRow, toCol) {
+  const board = b(); if (!board) return
+  const fromGroup = board.groups.find(g => g.id === fromId)
+  if (!fromGroup) return
+  // Check for occupant at target cell
+  const toGroup = board.groups.find(
+    g => g.id !== fromId && (g.gridRow ?? 0) === toRow && (g.gridCol ?? 0) === toCol
+  )
+  if (toGroup) {
+    // Swap: occupant takes dragged group's old position
+    toGroup.gridRow = fromGroup.gridRow ?? 0
+    toGroup.gridCol = fromGroup.gridCol ?? 0
+  }
+  fromGroup.gridRow = toRow
+  fromGroup.gridCol = toCol
+  // Close any gaps that opened in the source column (or any column)
+  compactColumns(board)
   _save()
 }
 

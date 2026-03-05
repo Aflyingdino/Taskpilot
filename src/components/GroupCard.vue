@@ -4,7 +4,7 @@ import TaskCard from './TaskCard.vue'
 import ColorPicker from './ColorPicker.vue'
 import {
   moveTaskToGroup, deleteTask, renameGroup, deleteGroup, archiveGroup,
-  reorderGroups, updateGroup, projectLabels, createTask,
+  updateGroup, projectLabels, createTask,
 } from '@/stores/boardStore'
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, STATUS_META } from '@/utils/constants'
 import { formatShortDate } from '@/utils/dates'
@@ -13,18 +13,16 @@ const props = defineProps({
   group: { type: Object, required: true },
 })
 
-const emit = defineEmits(['openDetail'])
+const emit = defineEmits(['openDetail', 'groupDragStart'])
 
 const isEditing       = ref(false)
 const editName        = ref('')
 const nameInput       = ref(null)
-const isDragOver           = ref(false)
-const isGroupDragOver      = ref(false)
-const dragCounter          = ref(0)
-const groupDragCounter     = ref(0)
-const collapsed            = ref(false)
-const confirmingArchive    = ref(false)
-const confirmingDelete     = ref(false)
+const isDragOver      = ref(false)
+const dragCounter     = ref(0)
+const collapsed       = ref(false)
+const confirmingArchive = ref(false)
+const confirmingDelete  = ref(false)
 
 /* ── Add task inline ── */
 const showTaskInput = ref(false)
@@ -54,7 +52,7 @@ async function startRename() {
   nameInput.value?.select()
 }
 function finishRename() {
-  const n = editName.value.trim()
+  const n = editName.value.trim().slice(0, 30)
   if (n && n !== props.group.name) renameGroup(props.group.id, n)
   isEditing.value = false
 }
@@ -107,41 +105,30 @@ const PRIORITY_COLORS = {
   low: '#46a758', medium: '#5b5bd6', high: '#f76b15', urgent: '#e5484d',
 }
 
-/* ── Drag & drop tasks ── */
+/* ── Drag & drop tasks only ── */
 function onDragEnter(e) {
   if (e.dataTransfer.types.includes('application/task-id')) {
     e.preventDefault(); dragCounter.value++; isDragOver.value = true
-  } else if (e.dataTransfer.types.includes('application/group-id')) {
-    e.preventDefault(); groupDragCounter.value++; isGroupDragOver.value = true
   }
 }
 function onDragOver(e) {
-  if (e.dataTransfer.types.includes('application/task-id') ||
-      e.dataTransfer.types.includes('application/group-id')) {
-    e.preventDefault()
-  }
+  if (e.dataTransfer.types.includes('application/task-id')) e.preventDefault()
 }
 function onDragLeave(e) {
   if (e.dataTransfer.types.includes('application/task-id')) {
     dragCounter.value--
     if (dragCounter.value <= 0) { isDragOver.value = false; dragCounter.value = 0 }
-  } else if (e.dataTransfer.types.includes('application/group-id')) {
-    groupDragCounter.value--
-    if (groupDragCounter.value <= 0) { isGroupDragOver.value = false; groupDragCounter.value = 0 }
   }
 }
 function onDrop(e) {
   dragCounter.value = 0; isDragOver.value = false
-  groupDragCounter.value = 0; isGroupDragOver.value = false
-  const groupId = e.dataTransfer.getData('application/group-id')
-  if (groupId) { reorderGroups(Number(groupId), props.group.id); return }
   const taskId = Number(e.dataTransfer.getData('application/task-id'))
-  if (taskId) moveTaskToGroup(taskId, props.group.id)
+  if (taskId) { moveTaskToGroup(taskId, props.group.id); e.stopPropagation() }
 }
 function onGroupDragStart(e) {
-  e.stopPropagation()
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('application/group-id', String(props.group.id))
+  emit('groupDragStart', props.group.id)
 }
 function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) }
 </script>
@@ -149,7 +136,7 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
 <template>
   <div
     class="col"
-    :class="{ 'col--over': isDragOver, 'col--group-over': isGroupDragOver, 'col--colored': !!accentColor, 'col--tinted': !!group.mainColor }"
+    :class="{ 'col--over': isDragOver, 'col--colored': !!accentColor, 'col--tinted': !!group.mainColor }"
     :style="{ ...(accentColor ? { '--col-accent': accentColor } : {}), ...(group.mainColor ? { '--col-main': group.mainColor } : {}) }"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
@@ -163,12 +150,11 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
         class="col-icon-btn col-drag-handle"
         draggable="true"
         @dragstart="onGroupDragStart"
-        @dragend.stop
         title="Drag to reorder"
         aria-label="Drag to reorder group"
       >
         <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
       </div>
 
@@ -195,6 +181,7 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
           ref="nameInput"
           v-model="editName"
           class="col-name-input"
+          maxlength="30"
           @blur="finishRename"
           @keydown.enter="finishRename"
           @keydown.escape="isEditing = false"
@@ -224,29 +211,35 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
 
       <!-- Action buttons -->
       <div class="col-actions">
-        <!-- Collapse / expand -->
+        <!-- Collapse / expand — leftmost, fastest reach -->
         <button
           class="col-icon-btn"
           :class="{ 'col-icon-btn--active': collapsed }"
           @click.stop="collapsed = !collapsed; confirmingArchive = false; confirmingDelete = false"
           :title="collapsed ? 'Expand group' : 'Collapse group'"
         >
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" :d="collapsed ? 'M19 9l-7 7-7-7' : 'M5 15l7-7 7 7'" />
+          </svg>
+        </button>
+        <!-- Open detail -->
+        <button class="col-icon-btn" @click.stop="emit('openDetail', group.id)" title="Open group detail">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
           </svg>
         </button>
         <!-- Archive (with confirm) -->
         <template v-if="confirmingArchive">
           <span class="col-confirm-text">Archive?</span>
           <button class="col-icon-btn col-icon-btn--confirm-yes" @click.stop="archiveGroup(group.id)" title="Yes, archive">
-            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </button>
           <button class="col-icon-btn" @click.stop="confirmingArchive = false" title="Cancel">
-            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </template>
-        <button v-else class="col-icon-btn" @click.stop="confirmingArchive = true" title="Archive group">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button v-else class="col-icon-btn col-icon-btn--archive" @click.stop="confirmingArchive = true" title="Archive group">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
           </svg>
         </button>
@@ -254,26 +247,20 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
         <template v-if="confirmingDelete">
           <span class="col-confirm-text col-confirm-text--danger">Delete?</span>
           <button class="col-icon-btn col-icon-btn--danger" @click.stop="deleteGroup(group.id)" title="Yes, delete">
-            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           </button>
           <button class="col-icon-btn" @click.stop="confirmingDelete = false" title="Cancel">
-            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </template>
         <button v-else class="col-icon-btn col-icon-btn--danger" @click.stop="confirmingDelete = true" title="Delete group">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
-          </svg>
-        </button>
-        <!-- Open detail -->
-        <button class="col-icon-btn" @click.stop="emit('openDetail', group.id)" title="Open group detail">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
           </svg>
         </button>
         <!-- Meta / settings -->
         <button class="col-icon-btn" :class="{ 'col-icon-btn--active': metaOpen }" @click.stop="openMeta" title="Group settings">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path stroke-linecap="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
@@ -390,31 +377,33 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
 /* ── Column shell ── */
 .col {
   flex-shrink: 0;
-  width: 270px;
+  width: 100%;
   max-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  transition: border-color 0.15s, max-height 0.2s ease;
+  transition: border-color 0.15s, max-height 0.25s ease, box-shadow 0.15s;
   position: relative;
 }
-.col--colored { border-left: 3px solid var(--col-accent); }
+.col--colored { border-left: 4px solid var(--col-accent); }
 .col--tinted { background: color-mix(in srgb, var(--col-main) 10%, var(--color-surface-2)); }
-.col--group-over { outline: 2px dashed var(--color-accent); outline-offset: 2px; }
-.col--over { border-color: var(--color-accent); }
+.col--over {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
 
 /* ── Header ── */
 .col-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 10px 8px;
+  gap: 7px;
+  padding: 12px 12px 10px;
   border-bottom: 1px solid var(--color-border-sub);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  overflow: hidden;
 }
 
 /* ── Drag handle ── */
@@ -425,39 +414,41 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
 .col-title-area {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex: 1;
   min-width: 0;
-  flex-wrap: wrap;
+  overflow: hidden;
 }
-.col-priority-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.col-priority-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .col-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-1);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
   transition: color 0.12s;
 }
 .col-name:hover { color: var(--color-accent); }
 .col-name-input {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-1);
   background: var(--color-surface-0);
   border: 1px solid var(--color-accent);
-  border-radius: 4px;
-  padding: 1px 6px;
+  border-radius: 5px;
+  padding: 2px 7px;
   outline: none;
   min-width: 0;
   flex: 1;
 }
 .col-count {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 99px;
   background: var(--color-surface-3);
   color: var(--color-text-3);
@@ -465,9 +456,9 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
   flex-shrink: 0;
 }
 .col-status-chip {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 99px;
   background: var(--color-surface-3);
   color: var(--color-text-2);
@@ -478,29 +469,37 @@ function handleDeleteTask(taskId) { deleteTask(taskId, 'group', props.group.id) 
 }
 
 /* ── Label dots ── */
-.col-label-dots { display: flex; align-items: center; gap: 3px; margin-left: auto; }
-.col-label-dot { width: 7px; height: 7px; border-radius: 50%; }
-.col-label-more { font-size: 9px; color: var(--color-text-3); }
+.col-label-dots { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.col-label-dot { width: 8px; height: 8px; border-radius: 50%; }
+.col-label-more { font-size: 10px; color: var(--color-text-3); }
 
 /* ── Icon buttons (unified) ── */
-.col-actions { display: flex; align-items: center; gap: 2px; }
+.col-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .col-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   border: none;
   background: transparent;
   color: var(--color-text-3);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.13s, color 0.13s, transform 0.1s;
   flex-shrink: 0;
 }
-.col-icon-btn:hover { background: var(--color-surface-3); color: var(--color-text-1); }
+.col-icon-btn:hover { background: var(--color-surface-3); color: var(--color-text-1); transform: scale(1.08); }
+.col-icon-btn:active { transform: scale(0.94); }
 .col-icon-btn--active { color: var(--color-accent); }
+/* Archive — amber/yellow on hover */
+.col-icon-btn--archive { color: color-mix(in srgb, #f5c842 70%, var(--color-text-3)); }
+.col-icon-btn--archive:hover { color: #f5c842; background: color-mix(in srgb, #f5c842 15%, transparent); }
+/* Delete — red on hover */
+.col-icon-btn--danger { color: color-mix(in srgb, var(--color-danger) 60%, var(--color-text-3)); }
 .col-icon-btn--danger:hover { color: var(--color-danger); background: var(--color-danger-bg); }
+/* Confirm yes (green) */
+.col-icon-btn--confirm-yes { color: #46a758; }
 .col-icon-btn--confirm-yes:hover { color: #46a758; background: color-mix(in srgb, #46a758 15%, transparent); }
 
 /* ── Confirm inline labels ── */

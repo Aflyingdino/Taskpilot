@@ -2,7 +2,7 @@
 import { ref, nextTick, computed } from 'vue'
 import GroupCard from './GroupCard.vue'
 import ColorPicker from './ColorPicker.vue'
-import { groups, archivedGroups, createGroup, restoreGroup, deleteArchivedGroup, updateGroup, projectLabels } from '@/stores/boardStore'
+import { groups, archivedGroups, createGroup, moveGroupToGrid, restoreGroup, deleteArchivedGroup, updateGroup, projectLabels } from '@/stores/boardStore'
 import { formatLongDate, formatShortDate } from '@/utils/dates'
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, STATUS_META } from '@/utils/constants'
 import { openTaskDetail } from '@/stores/uiStore'
@@ -47,6 +47,90 @@ const detailGroup = computed(() =>
 const PRIORITY_COLORS = {
   low: '#46a758', medium: '#5b5bd6', high: '#f76b15', urgent: '#e5484d',
 }
+
+// ── 2D grid state ──────────────────────────────────────────────
+const draggingId = ref(null)
+const overCell   = ref(null) // { row, col }
+
+const gridData = computed(() => {
+  const gs = groups.value
+  if (gs.length === 0) return { columns: [], rows: 1, cols: 1 }
+  const positioned = gs.map((g, i) => ({
+    group: g,
+    r: g.gridRow !== undefined ? g.gridRow : i,
+    c: g.gridCol !== undefined ? g.gridCol : 0,
+  }))
+  const maxRow = Math.max(...positioned.map(p => p.r))
+  const maxCol = Math.max(...positioned.map(p => p.c))
+  const rows = maxRow + 2
+  const cols = maxCol + 2
+  // Build column-of-columns so each column is an independent flex stack —
+  // groups in different columns never affect each other's vertical position.
+  const columns = []
+  for (let c = 0; c < cols; c++) {
+    const colCells = []
+    for (let r = 0; r < rows; r++) {
+      const found = positioned.find(p => p.r === r && p.c === c)
+      colCells.push({ row: r, col: c, group: found?.group ?? null })
+    }
+    columns.push(colCells)
+  }
+  return { columns, rows, cols }
+})
+
+// Source group's current grid position
+const sourceCell = computed(() => {
+  if (!draggingId.value) return null
+  const sg = groups.value.find(g => g.id === draggingId.value)
+  if (!sg) return null
+  return { row: sg.gridRow ?? 0, col: sg.gridCol ?? 0 }
+})
+
+// Valid drop cells: the other groups' own cells (for swap) + their orthogonal
+// neighbors (up/down/left/right only — no diagonals). The source group's own
+// cell is always excluded so a group can't be placed "next to itself".
+const validDropSet = computed(() => {
+  if (!draggingId.value) return new Set()
+  const src = sourceCell.value
+  const others = groups.value.filter(g => g.id !== draggingId.value)
+  const set = new Set()
+  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]
+  for (const g of others) {
+    const r = g.gridRow ?? 0
+    const c = g.gridCol ?? 0
+    set.add(`${r},${c}`)           // other group's own cell (swap)
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc
+      if (nr < 0 || nc < 0) continue
+      set.add(`${nr},${nc}`)       // empty neighbor cells
+    }
+  }
+  // Never allow dropping on the source group's own cell ("next to itself")
+  if (src) set.delete(`${src.row},${src.col}`)
+  return set
+})
+
+function isValidDrop(cell) {
+  return validDropSet.value.has(`${cell.row},${cell.col}`)
+}
+
+function onCellOver(cell) {
+  if (!draggingId.value) return
+  if (!isValidDrop(cell)) { overCell.value = null; return }
+  overCell.value = { row: cell.row, col: cell.col }
+}
+function onCellLeave() { /* overCell resets in onCellOver as cursor enters next cell */ }
+function onCellDrop(cell) {
+  if (!draggingId.value) return
+  if (!isValidDrop(cell)) return
+  moveGroupToGrid(draggingId.value, cell.row, cell.col)
+  draggingId.value = null
+  overCell.value = null
+}
+function onDragEnd() {
+  draggingId.value = null
+  overCell.value = null
+}
 </script>
 
 <template>
@@ -84,6 +168,7 @@ const PRIORITY_COLORS = {
               v-model="groupName"
               class="tabs-add-input"
               placeholder="Group name…"
+              maxlength="30"
               @keydown.enter="submitGroup"
               @keydown.escape="cancelCreate"
             />
@@ -103,19 +188,54 @@ const PRIORITY_COLORS = {
     </div>
 
     <!-- ══ BOARD VIEW ══ -->
-    <div v-if="activeTab === 'board'" class="board">
-      <TransitionGroup name="group" tag="div" class="board-inner">
-        <GroupCard
-          v-for="group in groups"
-          :key="group.id"
-          :group="group"
-          @openDetail="openGroupDetail"
-        />
-      </TransitionGroup>
-
-      <!-- Empty state -->
+    <div v-if="activeTab === 'board'" class="board" :class="{ 'board--dragging': !!draggingId }" @dragend="onDragEnd">
       <div v-if="groups.length === 0" class="board-empty">
         <p>No groups yet. Click <strong>Add group</strong> in the toolbar above to get started.</p>
+      </div>
+
+      <!-- Column-of-columns layout: each column is an independent flex stack so
+           group heights in one column never push groups down in other columns. -->
+      <div v-else class="board-columns">
+        <div
+          v-for="(colCells, ci) in gridData.columns"
+          :key="ci"
+          class="board-column"
+        >
+          <div
+            v-for="cell in colCells"
+            :key="`${cell.row}-${cell.col}`"
+            class="grid-cell"
+            :class="{
+              'grid-cell--over':    overCell && overCell.row === cell.row && overCell.col === cell.col,
+              'grid-cell--self':    cell.group && cell.group.id === draggingId,
+              'grid-cell--valid':   !!draggingId && isValidDrop(cell),
+              'grid-cell--invalid': !!draggingId && !isValidDrop(cell) && !(cell.group && cell.group.id === draggingId),
+            }"
+            @dragover.prevent="onCellOver(cell)"
+            @dragleave="onCellLeave(cell)"
+            @drop.prevent="onCellDrop(cell)"
+          >
+            <GroupCard
+              v-if="cell.group"
+              :group="cell.group"
+              @openDetail="openGroupDetail"
+              @groupDragStart="draggingId = $event"
+            />
+            <!-- Ghost placeholder: shown on every valid empty cell while dragging -->
+            <div
+              v-else-if="draggingId && isValidDrop(cell)"
+              class="ghost-card"
+              :class="{ 'ghost-card--over': overCell && overCell.row === cell.row && overCell.col === cell.col }"
+            >
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5"/>
+              </svg>
+              <span>Move here</span>
+            </div>
+            <!-- Empty drop zone -->
+            <div v-else class="empty-cell" />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -267,10 +387,11 @@ const PRIORITY_COLORS = {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 10px 20px 0;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
   background: var(--color-surface-1);
+  min-height: 52px;
 }
 .board-tab {
   display: flex;
@@ -309,23 +430,119 @@ const PRIORITY_COLORS = {
   min-height: 0;
   height: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
-.board-inner {
+/* Grabbing cursor while any group is being dragged */
+.board--dragging { cursor: grabbing; }
+
+/* Column-of-columns: outer wrapper */
+.board-columns {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  padding: 24px;
+  align-items: flex-start;
+  min-height: 100%;
+}
+
+/* Each column stacks cells independently — no cross-column row-height coupling */
+.board-column {
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  height: 100%;
-  padding: 16px;
-  gap: 12px;
-  box-sizing: border-box;
+  gap: 16px;
+  width: 360px;
+  flex-shrink: 0;
 }
+
 .board-empty {
-  padding: 40px 20px;
+  padding: 60px 20px;
   text-align: center;
   color: var(--color-text-3);
   font-size: 14px;
+}
+
+/* Grid cells — no forced min-height; let contents (GroupCard / ghost / empty-cell) define height */
+.grid-cell {
+  position: relative;
+  width: 100%;
+  transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+/* Source card: shrink + dim while being dragged */
+.grid-cell--self {
+  opacity: 0.28;
+  transform: scale(0.97);
+  pointer-events: none;
+}
+/* Dim cells that are not valid drop targets while dragging */
+.grid-cell--invalid {
+  opacity: 0.2;
+  pointer-events: none;
+}
+/* Persistent dashed outline on every valid occupied cell while dragging */
+.grid-cell--valid:not(.grid-cell--self) > :deep(.col) {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: 4px;
+  transition: box-shadow 0.2s ease, outline-color 0.2s ease;
+  animation: validPulse 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Glowing ring on the hovered occupied cell */
+.grid-cell--over.grid-cell--valid:not(.grid-cell--self) > :deep(.col) {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-accent) 22%, transparent),
+              0 4px 20px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+/* Ghost placeholder — shown on all valid empty cells while dragging */
+.ghost-card {
+  width: 100%;
+  min-height: 100px;
+  border: 2px dashed var(--color-accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  animation: ghostIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+/* Ghost brightens when hovered / about to drop */
+.ghost-card--over {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent),
+              0 4px 20px color-mix(in srgb, var(--color-accent) 12%, transparent);
+  animation: ghostPulse 1.4s ease-in-out infinite;
+}
+
+/* Empty drop zone (non-valid cells, shown when not dragging) */
+.empty-cell {
+  width: 100%;
+  min-height: 60px;
+  border-radius: 12px;
+  border: 1px dashed var(--color-border);
+  opacity: 0.15;
+  transition: opacity 0.18s;
+}
+
+/* ── Animations ── */
+@keyframes ghostIn {
+  from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes validPulse {
+  from { outline-color: transparent; }
+  to   { outline-color: var(--color-accent); }
+}
+@keyframes ghostPulse {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+  50%       { box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-accent) 28%, transparent); }
 }
 .form-actions { display: flex; gap: 6px; margin-top: 10px; }
 .btn-primary {
