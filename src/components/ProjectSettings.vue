@@ -37,35 +37,39 @@ function saveEdit() {
 
 /* ── Member state ── */
 const memberEmail = ref('')
-const memberRole  = ref('user')
+const memberRole  = ref('collaborator')
 const memberError = ref('')
 
-function inviteMember() {
+async function inviteMember() {
   memberError.value = ''
   const email = memberEmail.value.trim().toLowerCase()
   if (!email || !email.includes('@')) { memberError.value = 'Enter a valid email.'; return }
   const p = activeProject.value
   if (!p) return
   if (p.members.find(m => m.email === email)) { memberError.value = 'Already a member.'; return }
-  addMember(p.id, email, memberRole.value)
-  memberEmail.value = ''
-  memberRole.value  = 'user'
+  try {
+    await addMember(p.id, email, memberRole.value)
+    memberEmail.value = ''
+    memberRole.value  = 'collaborator'
+  } catch (err) {
+    memberError.value = err.message
+  }
 }
 
-function changeRole(memberId, role) {
+async function changeRole(memberId, role) {
   const p = activeProject.value
-  if (p) updateMemberRole(p.id, memberId, role)
+  if (p) await updateMemberRole(p.id, memberId, role)
 }
 
-function kickMember(memberId) {
+async function kickMember(memberId) {
   const p = activeProject.value
-  if (p) removeMember(p.id, memberId)
+  if (p) await removeMember(p.id, memberId)
 }
 
 const ROLES = [
   { value: 'owner', label: 'Owner' },
   { value: 'admin', label: 'Admin' },
-  { value: 'user',  label: 'Member' },
+  { value: 'collaborator',  label: 'Member' },
 ]
 
 const isProjectMuted = computed(() => !!activeProject.value && mutedProjectIds.value.has(activeProject.value.id))

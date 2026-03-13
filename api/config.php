@@ -1,0 +1,52 @@
+<?php
+/*
+ * Database configuration.
+ * Update these values to match your local MySQL setup.
+ */
+
+define('DB_HOST', '127.0.0.1');
+define('DB_PORT', '3306');
+define('DB_NAME', 'beroeps2_taskpilot');
+define('DB_USER', 'groepjec');
+define('DB_PASS', 'Votnm2Sy#z');
+define('DB_CHARSET', 'utf8mb4');
+
+/* bcrypt cost — 12 is a solid default */
+define('BCRYPT_COST', 12);
+
+/* Session lifetime in seconds (24 hours) */
+define('SESSION_LIFETIME', 86400);
+
+/* ── PDO singleton ── */
+function db(): PDO
+{
+    static $pdo = null;
+    if ($pdo === null) {
+        $dsn = sprintf(
+            'mysql:host=%s;port=%s;dbname=%s;charset=%s',
+            DB_HOST, DB_PORT, DB_NAME, DB_CHARSET
+        );
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+    }
+    return $pdo;
+}
+
+/* ── Session bootstrap ── */
+function initSession(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) return;
+
+    session_set_cookie_params([
+        'lifetime' => SESSION_LIFETIME,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => isset($_SERVER['HTTPS']),
+        'httponly'  => true,
+        'samesite'  => 'Lax',
+    ]);
+    session_start();
+}

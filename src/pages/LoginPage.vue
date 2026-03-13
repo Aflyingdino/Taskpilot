@@ -2,6 +2,7 @@
 import { useRouter, useRoute } from 'vue-router'
 import { ref } from 'vue'
 import { login, authLoading, authError, clearAuthError } from '@/stores/authStore'
+import { fetchProjects } from '@/stores/projectStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +14,7 @@ async function handleLogin() {
   clearAuthError()
   try {
     await login(email.value, password.value)
+    await fetchProjects()
     const redirect = route.query.redirect || '/dashboard'
     router.push(redirect)
   } catch (_) { /* error shown via authError */ }

@@ -24,7 +24,7 @@ const progress = computed(() => {
   return Math.round((doneTasks.value / totalTasks.value) * 100)
 })
 
-const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', user: 'User' }
+const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', collaborator: 'Member' }
 
 const isProjectMuted = computed(() => mutedProjectIds.value.has(props.project.id))
 </script>

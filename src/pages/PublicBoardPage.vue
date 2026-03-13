@@ -1,13 +1,18 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { projects } from '@/stores/projectStore'
+import { fetchPublicProject } from '@/stores/projectStore'
 
 const route = useRoute()
+const project = ref(null)
+const loading = ref(true)
 
-const project = computed(() =>
-  projects.value.find(p => p.shareId === route.params.shareId) ?? null
-)
+onMounted(async () => {
+  try {
+    project.value = await fetchPublicProject(route.params.shareId)
+  } catch { /* not found */ }
+  loading.value = false
+})
 </script>
 
 <template>
