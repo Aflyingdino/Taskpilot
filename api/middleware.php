@@ -3,6 +3,46 @@
  * Auth & authorization middleware.
  */
 
+function requireCsrfProtection(): void
+{
+    $token = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    if ($token === '' || !hash_equals(csrfToken(), $token)) {
+        securityLog('csrf_rejected');
+        jsonError('Invalid CSRF token', 419);
+    }
+}
+
+function applyRequestGuards(string $method, string $path): void
+{
+    if ($method === 'POST' || $method === 'PATCH') {
+        requireJsonRequest();
+    }
+
+    $ip = clientIp();
+
+    if (str_starts_with($path, '/public/')) {
+        enforceRateLimit('public:' . $ip, RATE_LIMIT_PUBLIC, RATE_LIMIT_PUBLIC_WINDOW);
+        return;
+    }
+
+    if ($path === '/auth/me') {
+        enforceRateLimit('auth-me:' . $ip, RATE_LIMIT_READ, RATE_LIMIT_READ_WINDOW);
+        return;
+    }
+
+    if ($path === '/auth/login' || $path === '/auth/register') {
+        enforceRateLimit('auth-route:' . $ip . ':' . $path, RATE_LIMIT_AUTH, RATE_LIMIT_AUTH_WINDOW);
+    } elseif (isSafeMethod($method)) {
+        enforceRateLimit('read:' . $ip, RATE_LIMIT_READ, RATE_LIMIT_READ_WINDOW);
+    } else {
+        enforceRateLimit('write:' . $ip, RATE_LIMIT_GENERAL, RATE_LIMIT_GENERAL_WINDOW);
+    }
+
+    if (!isSafeMethod($method)) {
+        requireCsrfProtection();
+    }
+}
+
 /**
  * Return current user_id from session, or null if not logged in.
  */

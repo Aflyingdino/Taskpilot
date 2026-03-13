@@ -18,6 +18,7 @@ function handleAddComment(int $taskId): never
     requireFields($data, ['text']);
 
     $body = clampString($data['text'], 5000);
+    if ($body === '') jsonError('Comment cannot be empty', 422);
 
     $db = db();
     $stmt = $db->prepare('INSERT INTO comments (task_id, user_id, body) VALUES (?, ?, ?)');
@@ -69,6 +70,7 @@ function handleEditComment(int $commentId): never
     requireFields($data, ['text']);
 
     $body = clampString($data['text'], 5000);
+    if ($body === '') jsonError('Comment cannot be empty', 422);
     $db->prepare('UPDATE comments SET body = ?, edited_at = NOW() WHERE comment_id = ?')
        ->execute([$body, $commentId]);
 

@@ -12,8 +12,7 @@ function handleCreateLabel(int $projectId): never
     requireFields($data, ['name']);
 
     $name  = clampString($data['name'], 50);
-    $color = $data['color'] ?? '#5b5bd6';
-    if (!validColor($color)) $color = '#5b5bd6';
+    $color = requireNullableColor($data['color'] ?? '#5b5bd6', 'color') ?? '#5b5bd6';
 
     $db = db();
     $stmt = $db->prepare('INSERT INTO labels (project_id, name, color) VALUES (?, ?, ?)');
@@ -43,9 +42,9 @@ function handleUpdateLabel(int $labelId): never
         $sets[] = 'name = ?';
         $vals[] = clampString($data['name'], 50);
     }
-    if (isset($data['color']) && validColor($data['color'])) {
+    if (array_key_exists('color', $data)) {
         $sets[] = 'color = ?';
-        $vals[] = $data['color'];
+        $vals[] = requireNullableColor($data['color'], 'color') ?? '#5b5bd6';
     }
 
     if ($sets) {

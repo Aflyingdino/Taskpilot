@@ -11,13 +11,8 @@ function handleAddMember(int $projectId): never
     $data = jsonBody();
     requireFields($data, ['email']);
 
-    $email = strtolower(trim($data['email']));
-    $role  = $data['role'] ?? 'collaborator';
-
-    // Validate role
-    if (!in_array($role, ['admin', 'collaborator'])) {
-        jsonError('Invalid role. Use "admin" or "collaborator"', 422);
-    }
+    $email = normalizeEmail($data['email']);
+    $role  = requireEnumValue($data['role'] ?? 'collaborator', ['admin', 'collaborator'], 'role');
 
     // Only owner can add admins
     if ($role === 'admin') {
@@ -59,10 +54,7 @@ function handleUpdateMemberRole(int $projectId, int $targetUserId): never
     $data = jsonBody();
     requireFields($data, ['role']);
 
-    $newRole = $data['role'];
-    if (!in_array($newRole, ['admin', 'collaborator'])) {
-        jsonError('Invalid role', 422);
-    }
+    $newRole = requireEnumValue($data['role'], ['admin', 'collaborator'], 'role');
 
     // Only owner can promote to admin or change roles
     requireProjectOwner($projectId, $uid);

@@ -32,13 +32,14 @@ function handleCreateGroup(int $projectId): never
 
     $name     = clampString($data['name'], 150);
     $desc     = clampString($data['description'] ?? '', 5000);
-    $status   = $data['status'] ?? 'not_started';
-    $priority = $data['priority'] ?? 'medium';
-    $deadline = $data['deadline'] ?? null;
-    $mainClr  = $data['mainColor'] ?? null;
-    $accClr   = $data['color'] ?? null;
-    $gridRow  = (int)($data['gridRow'] ?? 0);
-    $gridCol  = (int)($data['gridCol'] ?? 0);
+    $status   = requireEnumValue($data['status'] ?? 'not_started', ['not_started', 'started', 'ready_for_test', 'done'], 'status');
+    $priority = requireEnumValue($data['priority'] ?? 'medium', ['low', 'medium', 'high', 'urgent'], 'priority');
+    $deadline = requireNullableDate($data['deadline'] ?? null, 'deadline');
+    $mainClr  = requireNullableColor($data['mainColor'] ?? null, 'mainColor');
+    $accClr   = requireNullableColor($data['color'] ?? null, 'color');
+    $gridRow  = requireBoundedInt($data['gridRow'] ?? 0, 'gridRow', 0, 1000);
+    $gridCol  = requireBoundedInt($data['gridCol'] ?? 0, 'gridCol', 0, 1000);
+    $labelIds = requireIntArray($data['labelIds'] ?? [], 'labelIds');
 
     $stmt = $db->prepare('
         INSERT INTO board_groups
@@ -53,8 +54,8 @@ function handleCreateGroup(int $projectId): never
     $gid = (int) $db->lastInsertId();
 
     // Sync group labels
-    if (!empty($data['labelIds'])) {
-        syncGroupLabels($gid, $data['labelIds']);
+    if ($labelIds) {
+        syncGroupLabels($gid, $projectId, $labelIds);
     }
 
     logActivity($projectId, $uid, 'group_created', "Group \"$name\" created");
@@ -90,6 +91,13 @@ function handleUpdateGroup(int $groupId): never
             $val = $data[$key];
             if ($cfg['max'] && is_string($val)) $val = clampString($val, $cfg['max']);
             if (in_array($key, ['gridRow', 'gridCol'])) $val = (int) $val;
+            if ($key === 'status') $val = requireEnumValue($val, ['not_started', 'started', 'ready_for_test', 'done'], 'status');
+            if ($key === 'priority') $val = requireEnumValue($val, ['low', 'medium', 'high', 'urgent'], 'priority');
+            if ($key === 'deadline') $val = requireNullableDate($val, 'deadline');
+            if ($key === 'mainColor') $val = requireNullableColor($val, 'mainColor');
+            if ($key === 'color') $val = requireNullableColor($val, 'color');
+            if ($key === 'gridRow') $val = requireBoundedInt($val, 'gridRow', 0, 1000);
+            if ($key === 'gridCol') $val = requireBoundedInt($val, 'gridCol', 0, 1000);
             $sets[] = $cfg['col'] . ' = ?';
             $vals[] = $val;
         }
@@ -102,7 +110,7 @@ function handleUpdateGroup(int $groupId): never
     }
 
     if (array_key_exists('labelIds', $data)) {
-        syncGroupLabels($groupId, $data['labelIds'] ?? []);
+        syncGroupLabels($groupId, $pid, requireIntArray($data['labelIds'] ?? [], 'labelIds'));
     }
 
     jsonResponse(buildGroupResponse($groupId));
@@ -154,12 +162,28 @@ function handleRestoreGroup(int $groupId): never
 
 /* ── Internal helpers ── */
 
-function syncGroupLabels(int $groupId, array $labelIds): void
+function syncGroupLabels(int $groupId, int $projectId, array $labelIds): void
 {
     $db = db();
     $db->prepare('DELETE FROM group_labels WHERE group_id = ?')->execute([$groupId]);
+    if (!$labelIds) {
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($labelIds), '?'));
+    $params = array_merge([$projectId], $labelIds);
+    $stmt = $db->prepare("SELECT label_id FROM labels WHERE project_id = ? AND label_id IN ($placeholders)");
+    $stmt->execute($params);
+    $validIds = array_map(static fn($row) => (int) $row['label_id'], $stmt->fetchAll());
+    sort($validIds);
+    $expected = $labelIds;
+    sort($expected);
+    if ($validIds !== $expected) {
+        jsonError('Invalid labelIds', 422);
+    }
+
     $stmt = $db->prepare('INSERT INTO group_labels (group_id, label_id) VALUES (?, ?)');
-    foreach ($labelIds as $lid) {
+    foreach ($validIds as $lid) {
         $stmt->execute([$groupId, (int) $lid]);
     }
 }

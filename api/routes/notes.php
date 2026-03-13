@@ -17,9 +17,9 @@ function handleAddNote(int $taskId): never
 
     $title       = clampString($data['title'] ?? 'Note', 150);
     $content     = clampString($data['content'] ?? '', 10000);
-    $contentType = $data['contentType'] ?? 'text';
-    $bgColor     = $data['bgColor'] ?? '#5b5bd6';
-    $textColor   = $data['textColor'] ?? '#ffffff';
+    $contentType = requireEnumValue($data['contentType'] ?? 'text', ['text', 'image', 'video'], 'contentType');
+    $bgColor     = requireNullableColor($data['bgColor'] ?? '#5b5bd6', 'bgColor') ?? '#5b5bd6';
+    $textColor   = requireNullableColor($data['textColor'] ?? '#ffffff', 'textColor') ?? '#ffffff';
 
     $db = db();
     $stmt = $db->prepare('
@@ -63,9 +63,9 @@ function handleUpdateNote(int $noteId): never
 
     if (isset($data['title']))       { $sets[] = 'title = ?';        $vals[] = clampString($data['title'], 150); }
     if (isset($data['content']))     { $sets[] = 'content = ?';      $vals[] = clampString($data['content'], 10000); }
-    if (isset($data['contentType'])) { $sets[] = 'content_type = ?'; $vals[] = $data['contentType']; }
-    if (isset($data['bgColor']))     { $sets[] = 'bg_color = ?';     $vals[] = $data['bgColor']; }
-    if (isset($data['textColor']))   { $sets[] = 'text_color = ?';   $vals[] = $data['textColor']; }
+    if (isset($data['contentType'])) { $sets[] = 'content_type = ?'; $vals[] = requireEnumValue($data['contentType'], ['text', 'image', 'video'], 'contentType'); }
+    if (isset($data['bgColor']))     { $sets[] = 'bg_color = ?';     $vals[] = requireNullableColor($data['bgColor'], 'bgColor'); }
+    if (isset($data['textColor']))   { $sets[] = 'text_color = ?';   $vals[] = requireNullableColor($data['textColor'], 'textColor'); }
 
     if ($sets) {
         $vals[] = $noteId;

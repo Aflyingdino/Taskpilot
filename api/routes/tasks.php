@@ -15,6 +15,21 @@ function resolveTask(int $taskId, int $userId): array
     return $task;
 }
 
+function requireProjectGroup(?int $groupId, int $projectId): ?int
+{
+    if ($groupId === null) {
+        return null;
+    }
+
+    $stmt = db()->prepare('SELECT group_id FROM board_groups WHERE group_id = ? AND project_id = ?');
+    $stmt->execute([$groupId, $projectId]);
+    if (!$stmt->fetch()) {
+        jsonError('Invalid groupId', 422);
+    }
+
+    return $groupId;
+}
+
 function handleCreateTask(int $projectId): never
 {
     $uid = requireAuth();
@@ -25,15 +40,21 @@ function handleCreateTask(int $projectId): never
 
     $db = db();
 
-    $groupId  = isset($data['groupId']) ? (int) $data['groupId'] : null;
+    $groupId  = array_key_exists('groupId', $data) && $data['groupId'] !== null ? (int) $data['groupId'] : null;
+    $groupId  = requireProjectGroup($groupId, $projectId);
     $title    = clampString($data['text'], 150);
     $desc     = clampString($data['description'] ?? '', 10000);
-    $status   = $data['status'] ?? 'not_started';
-    $priority = $data['priority'] ?? 'medium';
-    $deadline = $data['deadline'] ?? null;
-    $mainClr  = $data['mainColor'] ?? null;
-    $accClr   = $data['color'] ?? null;
-    $calClr   = $data['calendarColor'] ?? null;
+    $status   = requireEnumValue($data['status'] ?? 'not_started', ['not_started', 'started', 'ready_for_test', 'done'], 'status');
+    $priority = requireEnumValue($data['priority'] ?? 'medium', ['low', 'medium', 'high', 'urgent'], 'priority');
+    $deadline = requireNullableDate($data['deadline'] ?? null, 'deadline');
+    $mainClr  = requireNullableColor($data['mainColor'] ?? null, 'mainColor');
+    $accClr   = requireNullableColor($data['color'] ?? null, 'color');
+    $calClr   = requireNullableColor($data['calendarColor'] ?? null, 'calendarColor');
+    $duration = array_key_exists('duration', $data) && $data['duration'] !== null
+        ? requireBoundedInt($data['duration'], 'duration', 1, 10080)
+        : null;
+    $labelIds = requireIntArray($data['labelIds'] ?? [], 'labelIds');
+    $assigneeIds = requireIntArray($data['assigneeIds'] ?? [], 'assigneeIds');
 
     // Next position within the group (or backlog)
     if ($groupId) {
@@ -48,23 +69,23 @@ function handleCreateTask(int $projectId): never
     $stmt = $db->prepare('
         INSERT INTO tasks
             (project_id, group_id, title, description, status, priority, due_date,
-             main_color, accent_color, calendar_color, position)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             main_color, accent_color, calendar_color, duration_minutes, position)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ');
     $stmt->execute([
         $projectId, $groupId, $title, $desc, $status, $priority, $deadline,
-        $mainClr, $accClr, $calClr, $pos,
+        $mainClr, $accClr, $calClr, $duration, $pos,
     ]);
     $tid = (int) $db->lastInsertId();
 
     // Sync labels
-    if (!empty($data['labelIds'])) {
-        syncTaskLabels($tid, $data['labelIds']);
+    if ($labelIds) {
+        syncTaskLabels($tid, $projectId, $labelIds);
     }
 
     // Sync assignees
-    if (!empty($data['assigneeIds'])) {
-        syncTaskAssignees($tid, $data['assigneeIds']);
+    if ($assigneeIds) {
+        syncTaskAssignees($tid, $projectId, $assigneeIds);
     }
 
     logActivity($projectId, $uid, 'task_created', "Task \"$title\" created");
@@ -100,6 +121,13 @@ function handleUpdateTask(int $taskId): never
             $val = $data[$key];
             if ($cfg['max'] && is_string($val)) $val = clampString($val, $cfg['max']);
             if ($key === 'duration' && $val !== null) $val = (int) $val;
+            if ($key === 'status') $val = requireEnumValue($val, ['not_started', 'started', 'ready_for_test', 'done'], 'status');
+            if ($key === 'priority') $val = requireEnumValue($val, ['low', 'medium', 'high', 'urgent'], 'priority');
+            if ($key === 'deadline') $val = requireNullableDate($val, 'deadline');
+            if ($key === 'mainColor') $val = requireNullableColor($val, 'mainColor');
+            if ($key === 'color') $val = requireNullableColor($val, 'color');
+            if ($key === 'calendarColor') $val = requireNullableColor($val, 'calendarColor');
+            if ($key === 'duration' && $val !== null) $val = requireBoundedInt($val, 'duration', 1, 10080);
             $sets[] = $cfg['col'] . ' = ?';
             $vals[] = $val;
         }
@@ -112,11 +140,11 @@ function handleUpdateTask(int $taskId): never
     }
 
     if (array_key_exists('labelIds', $data)) {
-        syncTaskLabels($taskId, $data['labelIds'] ?? []);
+        syncTaskLabels($taskId, $pid, requireIntArray($data['labelIds'] ?? [], 'labelIds'));
     }
 
     if (array_key_exists('assigneeIds', $data)) {
-        syncTaskAssignees($taskId, $data['assigneeIds'] ?? []);
+        syncTaskAssignees($taskId, $pid, requireIntArray($data['assigneeIds'] ?? [], 'assigneeIds'));
     }
 
     jsonResponse(buildTaskResponse($taskId));
@@ -143,6 +171,8 @@ function handleMoveTask(int $taskId): never
     $groupId = array_key_exists('groupId', $data) ? ($data['groupId'] !== null ? (int) $data['groupId'] : null) : false;
     if ($groupId === false) jsonError('groupId is required (use null for backlog)', 422);
 
+    $groupId = requireProjectGroup($groupId, (int) $task['project_id']);
+
     db()->prepare('UPDATE tasks SET group_id = ? WHERE task_id = ?')
         ->execute([$groupId, $taskId]);
 
@@ -155,8 +185,10 @@ function handleScheduleTask(int $taskId): never
     $task = resolveTask($taskId, $uid);
     $data = jsonBody();
 
-    $start    = $data['calendarStart'] ?? null;
-    $duration = isset($data['calendarDuration']) ? (int) $data['calendarDuration'] : null;
+    $start    = requireNullableDateTime($data['calendarStart'] ?? null, 'calendarStart');
+    $duration = array_key_exists('calendarDuration', $data) && $data['calendarDuration'] !== null
+        ? requireBoundedInt($data['calendarDuration'], 'calendarDuration', 1, 10080)
+        : null;
 
     db()->prepare('UPDATE tasks SET scheduled_start = ?, duration_minutes = ? WHERE task_id = ?')
         ->execute([$start, $duration, $taskId]);
@@ -177,22 +209,54 @@ function handleUnscheduleTask(int $taskId): never
 
 /* ── Internal helpers ── */
 
-function syncTaskLabels(int $taskId, array $labelIds): void
+function syncTaskLabels(int $taskId, int $projectId, array $labelIds): void
 {
     $db = db();
     $db->prepare('DELETE FROM task_labels WHERE task_id = ?')->execute([$taskId]);
+    if (!$labelIds) {
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($labelIds), '?'));
+    $params = array_merge([$projectId], $labelIds);
+    $check = $db->prepare("SELECT label_id FROM labels WHERE project_id = ? AND label_id IN ($placeholders)");
+    $check->execute($params);
+    $validIds = array_map(static fn($row) => (int) $row['label_id'], $check->fetchAll());
+    sort($validIds);
+    $expected = $labelIds;
+    sort($expected);
+    if ($validIds !== $expected) {
+        jsonError('Invalid labelIds', 422);
+    }
+
     $stmt = $db->prepare('INSERT INTO task_labels (task_id, label_id) VALUES (?, ?)');
-    foreach ($labelIds as $lid) {
+    foreach ($validIds as $lid) {
         $stmt->execute([$taskId, (int) $lid]);
     }
 }
 
-function syncTaskAssignees(int $taskId, array $userIds): void
+function syncTaskAssignees(int $taskId, int $projectId, array $userIds): void
 {
     $db = db();
     $db->prepare('DELETE FROM task_assignees WHERE task_id = ?')->execute([$taskId]);
+    if (!$userIds) {
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+    $params = array_merge([$projectId], $userIds);
+    $check = $db->prepare("SELECT user_id FROM project_members WHERE project_id = ? AND user_id IN ($placeholders)");
+    $check->execute($params);
+    $validIds = array_map(static fn($row) => (int) $row['user_id'], $check->fetchAll());
+    sort($validIds);
+    $expected = $userIds;
+    sort($expected);
+    if ($validIds !== $expected) {
+        jsonError('Invalid assigneeIds', 422);
+    }
+
     $stmt = $db->prepare('INSERT INTO task_assignees (task_id, user_id) VALUES (?, ?)');
-    foreach ($userIds as $uid) {
+    foreach ($validIds as $uid) {
         $stmt->execute([$taskId, (int) $uid]);
     }
 }

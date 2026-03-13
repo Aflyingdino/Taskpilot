@@ -302,8 +302,7 @@ function handleCreateProject(): never
     $db = db();
     $name  = clampString($data['name'], 150);
     $desc  = clampString($data['description'] ?? '', 5000);
-    $color = $data['color'] ?? '#5b5bd6';
-    if (!validColor($color)) $color = '#5b5bd6';
+    $color = requireNullableColor($data['color'] ?? '#5b5bd6', 'color') ?? '#5b5bd6';
 
     $stmt = $db->prepare('INSERT INTO projects (title, description, main_color) VALUES (?, ?, ?)');
     $stmt->execute([$name, $desc, $color]);
@@ -337,11 +336,8 @@ function handleUpdateProject(int $id): never
         $vals[] = clampString($data['description'], 5000);
     }
     if (isset($data['color'])) {
-        $color = $data['color'];
-        if (validColor($color)) {
-            $sets[] = 'main_color = ?';
-            $vals[] = $color;
-        }
+        $sets[] = 'main_color = ?';
+        $vals[] = requireNullableColor($data['color'], 'color') ?? '#5b5bd6';
     }
 
     if ($sets) {
