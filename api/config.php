@@ -18,6 +18,26 @@ function envInt(string $key, int $default): int
     return $value !== null && is_numeric($value) ? (int) $value : $default;
 }
 
+function envBool(string $key, bool $default): bool
+{
+    $value = envValue($key);
+    if ($value === null) {
+        return $default;
+    }
+
+    $normalized = strtolower(trim($value));
+    return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+}
+
+function requireEnv(string $key): string
+{
+    $value = envValue($key);
+    if ($value === null) {
+        throw new RuntimeException("Missing required environment variable: $key");
+    }
+    return $value;
+}
+
 function isHttpsRequest(): bool
 {
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
@@ -27,16 +47,26 @@ function isHttpsRequest(): bool
 }
 
 define('APP_ENV', envValue('APP_ENV', 'development'));
-define('APP_DEBUG', envValue('APP_DEBUG', APP_ENV === 'production' ? '0' : '1') === '1');
+define('APP_DEBUG', envBool('APP_DEBUG', APP_ENV !== 'production'));
 define('APP_URL', envValue('APP_URL', 'http://localhost:5173'));
 define('ALLOWED_ORIGINS', envValue('ALLOWED_ORIGINS', APP_URL));
 
 define('DB_HOST', envValue('DB_HOST', '127.0.0.1'));
 define('DB_PORT', envValue('DB_PORT', '3306'));
-define('DB_NAME', envValue('DB_NAME', 'beroeps2_taskpilot'));
-define('DB_USER', envValue('DB_USER', 'groepjec'));
-define('DB_PASS', envValue('DB_PASS', 'Votnm2Sy#z'));
+define('DB_NAME', envValue('DB_NAME', 'taskpilot'));
+define('DB_USER', envValue('DB_USER', 'taskpilot'));
+define('DB_PASS', envValue('DB_PASS', ''));
 define('DB_CHARSET', 'utf8mb4');
+
+if (APP_ENV === 'production') {
+    requireEnv('APP_URL');
+    requireEnv('ALLOWED_ORIGINS');
+    requireEnv('DB_HOST');
+    requireEnv('DB_PORT');
+    requireEnv('DB_NAME');
+    requireEnv('DB_USER');
+    requireEnv('DB_PASS');
+}
 
 define('PASSWORD_MIN_LENGTH', envInt('PASSWORD_MIN_LENGTH', 10));
 

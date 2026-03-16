@@ -1,0 +1,50 @@
+name: Build and Validate
+
+on:
+  push:
+    branches:
+      - main
+      - Backend
+  pull_request:
+
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run JavaScript unit tests
+        run: npm run test:js
+
+      - name: Validate OpenAPI contract
+        run: npm run lint:openapi
+
+  php-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Validate PHP syntax
+        run: find api -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run PHP helper tests
+        run: php tests/php/helpers_test.php

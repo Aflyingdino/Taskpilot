@@ -1,7 +1,7 @@
 # Backend Branch Change Documentation
 
 ## Scope
-This document summarizes all changes on the Backend branch compared to main, including current local branch edits.
+This document summarizes all committed changes on the Backend branch compared to main.
 
 Baseline used:
 - origin/main -> Backend workspace state
@@ -14,7 +14,7 @@ Change size:
 Top impacted areas:
 - src (37 files)
 - dist (31 files)
-- api (14 committed files, plus 1 local new file)
+- api (14 files)
 
 ## Branch-Level Summary
 The branch turns Taskpilot from a frontend-only setup into a full backend-integrated application and updates most frontend screens to work with live API and database data.
@@ -60,11 +60,11 @@ Main outcomes:
 - Updated root HTML metadata.
 - Updated VS Code extension recommendations.
 - Updated repository instruction file for agent behavior.
-- Removed CI workflow file currently present on main.
+- Added CI workflow for frontend build, tests, and PHP checks.
 
 ### Build Artifact and Structure Changes
 - Removed committed dist build artifacts from the branch snapshot.
-- Added nested reference folder for backend-integrated project source snapshot.
+- Kept repository structure limited to active project files.
 
 ## Full File Coverage
 
@@ -80,7 +80,7 @@ Main outcomes:
 
 ### Repository Meta and CI
 - .github/instructions/taskpilot.instructions.md (modified)
-- .github/workflows/build.yml (deleted)
+- .github/workflows/build.yml (added)
 
 ### API Files Added On Branch
 - api/.htaccess
@@ -143,15 +143,6 @@ Main outcomes:
 - dist/index.html (deleted)
 - dist/favicon.ico (deleted)
 - dist/assets/* generated assets (deleted set)
-
-### Added Project Snapshot Folder
-- website maar dan met backend/taskpilot (added)
-
-## Current Local Branch Edits Not Yet Committed
-- api/helpers.php (modified)
-- api/routes/auth.php (modified)
-- api/username_blocklist.php (added)
-- website maar dan met backend/taskpilot (modified content state)
 
 ## Notes
 This document intentionally stays high-level and human-readable. It covers the complete change surface without deep implementation details.

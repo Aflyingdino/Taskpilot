@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:js": "node --test tests/js/**/*.test.js",
+    "test:php": "php tests/php/helpers_test.php",
+    "test": "npm run test:js && npm run test:php",
+    "lint:openapi": "npx --yes @redocly/cli@latest lint openapi.yaml",
+    "check:frontend": "npm run build",
+    "check:php": "find api -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "check": "npm run check:frontend && npm run check:php && npm run test && npm run lint:openapi"
   },
   "dependencies": {
     "vue": "^3.5.29",
