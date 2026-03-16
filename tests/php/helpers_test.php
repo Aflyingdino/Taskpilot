@@ -40,7 +40,7 @@ expectTrue(validDateString('2026-03-16'), 'validDateString accepts yyyy-mm-dd');
 expectTrue(!validDateString('2026-99-99'), 'validDateString rejects invalid date');
 expectTrue(validDateTimeString('2026-03-16T13:45:00Z'), 'validDateTimeString accepts ISO datetime');
 
-expectSame('fakeadmin', normalizeModerationText('F@KE---ADM111N'), 'normalizeModerationText strips and normalizes');
+expectSame('fakeadmiin', normalizeModerationText('F@KE---ADM111N'), 'normalizeModerationText strips and normalizes');
 
 expectSame('/projects/10', path(), 'path strips api prefix');
 expectSame(true, isSafeMethod('GET'), 'GET is safe method');

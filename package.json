@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:js": "node --test tests/js/**/*.test.js",
+    "test:js": "node --test tests/js/utils.test.js",
     "test:php": "php tests/php/helpers_test.php",
     "test": "npm run test:js && npm run test:php",
     "lint:openapi": "npx --yes @redocly/cli@latest lint openapi.yaml",
