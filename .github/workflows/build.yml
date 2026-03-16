@@ -1,4 +1,4 @@
-name: Build and Validate
+name: Build, Validate and Deploy
 
 on:
   push:
@@ -6,6 +6,10 @@ on:
       - main
       - Backend
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   frontend-build:
@@ -41,10 +45,65 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: "8.2"
 
       - name: Validate PHP syntax
-        run: find api -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find api -name "*.php" -print0 | xargs -0 -n1 php -l
 
       - name: Run PHP helper tests
         run: php tests/php/helpers_test.php
+
+  build-and-deploy:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs:
+      - frontend-build
+      - php-syntax
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare for SPA hosting
+        run: |
+          cp dist/index.html dist/404.html
+          echo "ErrorDocument 404 /index.html" > dist/.htaccess
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish build to production branch
+        run: |
+          if git ls-remote --exit-code --heads origin production; then
+            git worktree add /tmp/production origin/production
+          else
+            git worktree add -b production /tmp/production
+          fi
+
+          find /tmp/production -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r dist/. /tmp/production/
+
+          cd /tmp/production
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+            exit 0
+          fi
+
+          git commit -m "Production build from main (${GITHUB_SHA})"
+          git push origin HEAD:production

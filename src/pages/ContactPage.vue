@@ -4,6 +4,7 @@ import PublicNav from '@/components/PublicNav.vue'
 const creators = [
   { name: 'Kenji Bras', initials: 'KB' },
   { name: 'Casper Gutteling', initials: 'CG' },
+  { name: 'Justin van Dam', initials: 'JD' },
 ]
 </script>
 

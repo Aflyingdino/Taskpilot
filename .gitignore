@@ -42,3 +42,6 @@ __screenshots__/
 .env
 .env.*
 !.env.example
+
+# Local nested deployment checkout
+my-vue-app-prod/

@@ -4,7 +4,7 @@ import { isLoggedIn } from '@/stores/authStore'
 /* ── Lazy-loaded page components ── */
 const HomePage       = () => import('@/pages/HomePage.vue')
 const AboutPage      = () => import('@/pages/AboutPage.vue')
-const ContactPage    = () => import('@/pages/contactpage.vue')
+const ContactPage    = () => import('@/pages/ContactPage.vue')
 const LoginPage      = () => import('@/pages/LoginPage.vue')
 const RegisterPage   = () => import('@/pages/RegisterPage.vue')
 const ProjectsPage   = () => import('@/pages/ProjectsPage.vue')
