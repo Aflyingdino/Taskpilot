@@ -3,12 +3,18 @@ info:
   title: Taskpilot API
   version: 1.0.0
   description: Session-based API for Taskpilot frontend.
+  license:
+    name: MIT
 servers:
   - url: /api
+security:
+  - cookieAuth: []
 paths:
   /csrf:
     get:
+      operationId: getCsrfToken
       summary: Get CSRF token
+      security: []
       responses:
         '200':
           description: CSRF token
@@ -20,9 +26,18 @@ paths:
                 properties:
                   token:
                     type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/register:
     post:
+      operationId: registerUser
       summary: Register account
+      security: []
       requestBody:
         required: true
         content:
@@ -36,9 +51,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthUserResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/login:
     post:
+      operationId: loginUser
       summary: Login
+      security: []
       requestBody:
         required: true
         content:
@@ -52,9 +76,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/logout:
     post:
+      operationId: logoutUser
       summary: Logout
+      security:
+        - cookieAuth: []
+          csrfToken: []
       responses:
         '200':
           description: Logged out
@@ -62,8 +97,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /auth/me:
     get:
+      operationId: getCurrentUser
       summary: Current authenticated user
       responses:
         '200':
@@ -78,8 +121,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
   /projects:
     get:
+      operationId: listProjects
       summary: List projects
       responses:
         '200':
@@ -90,8 +135,18 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProjectSummary'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
+      operationId: createProject
       summary: Create project
+      security:
+        - cookieAuth: []
+          csrfToken: []
       requestBody:
         required: true
         content:
@@ -105,8 +160,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectSummary'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /projects/{id}:
     get:
+      operationId: getProject
       summary: Get full project payload
       parameters:
         - $ref: '#/components/parameters/ProjectId'
@@ -117,8 +180,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectDetail'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
+      operationId: updateProject
       summary: Update project
+      security:
+        - cookieAuth: []
+          csrfToken: []
       parameters:
         - $ref: '#/components/parameters/ProjectId'
       requestBody:
@@ -134,8 +207,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProjectSummary'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
+      operationId: deleteProject
       summary: Delete project
+      security:
+        - cookieAuth: []
+          csrfToken: []
       parameters:
         - $ref: '#/components/parameters/ProjectId'
       responses:
@@ -145,9 +228,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /public/{token}:
     get:
+      operationId: getPublicProject
       summary: Public read-only project
+      security: []
       parameters:
         - name: token
           in: path
@@ -167,9 +259,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
   /projects/{id}/tasks:
     post:
+      operationId: createTask
       summary: Create task
+      security:
+        - cookieAuth: []
+          csrfToken: []
       parameters:
         - $ref: '#/components/parameters/ProjectId'
       requestBody:
@@ -185,9 +282,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /tasks/{id}:
     patch:
+      operationId: updateTask
       summary: Update task
+      security:
+        - cookieAuth: []
+          csrfToken: []
       parameters:
         - $ref: '#/components/parameters/TaskId'
       requestBody:
@@ -203,8 +311,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
+      operationId: deleteTask
       summary: Delete task
+      security:
+        - cookieAuth: []
+          csrfToken: []
       parameters:
         - $ref: '#/components/parameters/TaskId'
       responses:
@@ -214,7 +332,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: taskpilot_session
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+
   parameters:
     ProjectId:
       name: id
@@ -230,6 +365,7 @@ components:
       schema:
         type: integer
         minimum: 1
+
   schemas:
     RegisterRequest:
       type: object
@@ -243,6 +379,7 @@ components:
         password:
           type: string
           minLength: 10
+
     LoginRequest:
       type: object
       required: [email, password]
@@ -252,6 +389,7 @@ components:
           format: email
         password:
           type: string
+
     CreateProjectRequest:
       type: object
       required: [name]
@@ -263,6 +401,7 @@ components:
         color:
           type: string
           pattern: '^#[0-9a-fA-F]{6}$'
+
     UpdateProjectRequest:
       type: object
       properties:
@@ -273,6 +412,7 @@ components:
         color:
           type: string
           pattern: '^#[0-9a-fA-F]{6}$'
+
     CreateTaskRequest:
       type: object
       required: [text]
@@ -301,6 +441,7 @@ components:
           type: array
           items:
             type: integer
+
     UpdateTaskRequest:
       type: object
       properties:
@@ -317,6 +458,7 @@ components:
         deadline:
           type: string
           format: date
+
     AuthUserResponse:
       type: object
       required: [id, name, email, csrfToken]
@@ -330,6 +472,7 @@ components:
           format: email
         csrfToken:
           type: string
+
     CurrentUserResponse:
       type: object
       required: [id, name, email, createdAt]
@@ -343,18 +486,21 @@ components:
           format: email
         createdAt:
           type: string
+
     MessageResponse:
       type: object
       required: [message]
       properties:
         message:
           type: string
+
     ErrorResponse:
       type: object
       required: [error]
       properties:
         error:
           type: string
+
     ProjectSummary:
       type: object
       required: [id, name]
@@ -371,6 +517,7 @@ components:
           nullable: true
         role:
           type: string
+
     ProjectDetail:
       allOf:
         - $ref: '#/components/schemas/ProjectSummary'
@@ -396,6 +543,7 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Activity'
+
     PublicProject:
       type: object
       properties:
@@ -417,6 +565,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Label'
+
     Member:
       type: object
       properties:
@@ -429,6 +578,7 @@ components:
           format: email
         role:
           type: string
+
     Label:
       type: object
       properties:
@@ -438,6 +588,7 @@ components:
           type: string
         color:
           type: string
+
     Group:
       type: object
       properties:
@@ -455,6 +606,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Task'
+
     Task:
       type: object
       properties:
@@ -479,6 +631,7 @@ components:
           type: array
           items:
             type: integer
+
     Activity:
       type: object
       properties:
