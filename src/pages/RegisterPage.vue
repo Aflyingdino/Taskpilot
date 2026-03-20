@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, authLoading, authError, clearAuthError } from '@/stores/authStore'
+import { fetchProjects } from '@/stores/projectStore'
 
 const router = useRouter()
 
@@ -24,6 +25,7 @@ async function handleRegister() {
   }
   try {
     await register({ name: name.value, email: email.value, password: password.value })
+    await fetchProjects()
     router.push({ name: 'projects' })
   } catch (_) { /* error shown via authError */ }
 }

@@ -17,18 +17,18 @@ const filtered = computed(() =>
   projects.value.filter(p => p.name.toLowerCase().includes(search.value.toLowerCase()))
 )
 
-function handleCreate() {
+async function handleCreate() {
   if (!newName.value.trim()) return
-  createProject(newName.value.trim(), newDesc.value.trim(), newColor.value)
+  await createProject(newName.value.trim(), newDesc.value.trim(), newColor.value)
   showCreate.value = false
   newName.value = ''
   newDesc.value = ''
   newColor.value = '#5b5bd6'
 }
 
-function handleDelete(projectId) {
+async function handleDelete(projectId) {
   if (confirm('Delete this project? This action cannot be undone.')) {
-    deleteProject(projectId)
+    await deleteProject(projectId)
   }
 }
 
