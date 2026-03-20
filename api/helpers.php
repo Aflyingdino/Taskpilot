@@ -297,7 +297,7 @@ function normalizeModerationText(string $value): string
     ]);
 
     $value = preg_replace('/[^a-z0-9]/', '', $value) ?? '';
-    return preg_replace('/(.)\1{2,}/', '$1$1', $value) ?? '';
+    return preg_replace('/(.)\1+/', '$1', $value) ?? '';
 }
 
 function hasBlockedUsernameContent(string $name): bool
