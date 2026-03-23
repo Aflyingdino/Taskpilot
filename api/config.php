@@ -53,8 +53,8 @@ define('ALLOWED_ORIGINS', envValue('ALLOWED_ORIGINS', APP_URL));
 
 define('DB_HOST', envValue('DB_HOST', '127.0.0.1'));
 define('DB_PORT', envValue('DB_PORT', '3306'));
-define('DB_NAME', envValue('DB_NAME', 'taskpilot'));
-define('DB_USER', envValue('DB_USER', 'taskpilot'));
+define('DB_NAME', envValue('DB_NAME', 'vecta'));
+define('DB_USER', envValue('DB_USER', 'vecta'));
 define('DB_PASS', envValue('DB_PASS', ''));
 define('DB_CHARSET', 'utf8mb4');
 
@@ -74,10 +74,10 @@ define('PASSWORD_MIN_LENGTH', envInt('PASSWORD_MIN_LENGTH', 10));
 define('SESSION_LIFETIME', envInt('SESSION_LIFETIME', 86400));
 define('SESSION_IDLE_TIMEOUT', envInt('SESSION_IDLE_TIMEOUT', 1800));
 define('SESSION_REGENERATE_INTERVAL', envInt('SESSION_REGENERATE_INTERVAL', 900));
-define('SESSION_COOKIE_NAME', APP_ENV === 'production' ? '__Host-taskpilot_session' : 'taskpilot_session');
+define('SESSION_COOKIE_NAME', APP_ENV === 'production' ? '__Host-vecta_session' : 'vecta_session');
 
 define('MAX_JSON_BYTES', envInt('MAX_JSON_BYTES', 1024 * 1024));
-define('SECURITY_LOG_FILE', envValue('SECURITY_LOG_FILE', sys_get_temp_dir() . '/taskpilot-security.log'));
+define('SECURITY_LOG_FILE', envValue('SECURITY_LOG_FILE', sys_get_temp_dir() . '/vecta-security.log'));
 
 define('RATE_LIMIT_GENERAL', envInt('RATE_LIMIT_GENERAL', 120));
 define('RATE_LIMIT_GENERAL_WINDOW', envInt('RATE_LIMIT_GENERAL_WINDOW', 60));

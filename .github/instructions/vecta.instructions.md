@@ -2,7 +2,7 @@
 applyTo: "**"
 ---
 
-# Taskpilot Project — Copilot Instructions
+# Vecta Project — Copilot Instructions
 
 ## Role
 

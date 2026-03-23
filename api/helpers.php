@@ -98,7 +98,7 @@ function clientIp(): string
 
 function ensureRateLimitDir(): string
 {
-    $dir = sys_get_temp_dir() . '/taskpilot-rate-limit';
+    $dir = sys_get_temp_dir() . '/vecta-rate-limit';
     if (!is_dir($dir)) {
         mkdir($dir, 0700, true);
     }
@@ -434,10 +434,30 @@ function method(): string
 
 function path(): string
 {
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    // Strip /api prefix
-    $uri = preg_replace('#^/api#', '', $uri);
-    return $uri ?: '/';
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+
+    // When deployed under a subdirectory (e.g. /myapp/api), strip script dir first.
+    $scriptDir = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')));
+    $scriptDir = rtrim($scriptDir, '/');
+    if ($scriptDir !== '' && $scriptDir !== '.' && $scriptDir !== '/') {
+        if (str_starts_with($uri, $scriptDir . '/')) {
+            $uri = (string) substr($uri, strlen($scriptDir));
+        } elseif ($uri === $scriptDir) {
+            $uri = '/';
+        }
+    }
+
+    $uri = '/' . ltrim($uri, '/');
+
+    // Keep dev-router compatibility where requests arrive as /api/*.
+    if ($uri === '/api') {
+        return '/';
+    }
+    if (str_starts_with($uri, '/api/')) {
+        return (string) substr($uri, 4);
+    }
+
+    return $uri;
 }
 
 /**

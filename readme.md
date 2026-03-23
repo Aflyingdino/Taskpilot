@@ -1,6 +1,6 @@
-# Taskpilot (Vue + PHP API)
+# Vecta (Vue + PHP API)
 
-Taskpilot is a project and board management app with a Vue frontend and a PHP/MySQL backend API.
+Vecta is a project and board management app with a Vue frontend and a PHP/MySQL backend API.
 
 ## Stack
 
@@ -53,9 +53,9 @@ set +a
 4. Create database and user (example):
 
 ```sql
-CREATE DATABASE taskpilot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'taskpilot'@'localhost' IDENTIFIED BY 'change_me';
-GRANT ALL PRIVILEGES ON taskpilot.* TO 'taskpilot'@'localhost';
+CREATE DATABASE vecta CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'vecta'@'localhost' IDENTIFIED BY 'change_me';
+GRANT ALL PRIVILEGES ON vecta.* TO 'vecta'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -145,12 +145,12 @@ Example Apache vhost fragment:
 ```apache
 SetEnv APP_ENV production
 SetEnv APP_DEBUG 0
-SetEnv APP_URL https://taskpilot.example.com
-SetEnv ALLOWED_ORIGINS https://taskpilot.example.com
+SetEnv APP_URL https://vecta.example.com
+SetEnv ALLOWED_ORIGINS https://vecta.example.com
 SetEnv DB_HOST 127.0.0.1
 SetEnv DB_PORT 3306
-SetEnv DB_NAME taskpilot
-SetEnv DB_USER taskpilot
+SetEnv DB_NAME vecta
+SetEnv DB_USER vecta
 SetEnv DB_PASS <secure-password>
 
 RewriteEngine On
@@ -174,12 +174,12 @@ location ~ \.php$ {
   include fastcgi_params;
   fastcgi_param APP_ENV production;
   fastcgi_param APP_DEBUG 0;
-  fastcgi_param APP_URL https://taskpilot.example.com;
-  fastcgi_param ALLOWED_ORIGINS https://taskpilot.example.com;
+  fastcgi_param APP_URL https://vecta.example.com;
+  fastcgi_param ALLOWED_ORIGINS https://vecta.example.com;
   fastcgi_param DB_HOST 127.0.0.1;
   fastcgi_param DB_PORT 3306;
-  fastcgi_param DB_NAME taskpilot;
-  fastcgi_param DB_USER taskpilot;
+  fastcgi_param DB_NAME vecta;
+  fastcgi_param DB_USER vecta;
   fastcgi_param DB_PASS <secure-password>;
   fastcgi_pass unix:/run/php/php8.2-fpm.sock;
 }
