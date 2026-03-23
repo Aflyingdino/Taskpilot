@@ -35,7 +35,7 @@ const creators = [
 
       <section class="section">
         <h2 class="section-title">Email</h2>
-        <a href="mailto:hello@taskpilot.dev" class="contact-email">hello@taskpilot.dev</a>
+        <a href="mailto:hello@vecta.dev" class="contact-email">hello@vecta.dev</a>
       </section>
 
       <section class="section">

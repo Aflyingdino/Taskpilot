@@ -43,6 +43,15 @@ expectTrue(validDateTimeString('2026-03-16T13:45:00Z'), 'validDateTimeString acc
 expectSame('fakeadmin', normalizeModerationText('F@KE---ADM111N'), 'normalizeModerationText strips and normalizes');
 
 expectSame('/projects/10', path(), 'path strips api prefix');
+
+$_SERVER['REQUEST_URI'] = '/myapp/api/projects/10';
+$_SERVER['SCRIPT_NAME'] = '/myapp/api/index.php';
+expectSame('/projects/10', path(), 'path strips mounted script directory and api prefix');
+
+$_SERVER['REQUEST_URI'] = '/api/projects/10';
+$_SERVER['SCRIPT_NAME'] = '/dev-router.php';
+expectSame('/projects/10', path(), 'path keeps dev-router compatibility');
+
 expectSame(true, isSafeMethod('GET'), 'GET is safe method');
 expectSame(false, isSafeMethod('PATCH'), 'PATCH is unsafe method');
 

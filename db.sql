@@ -1,4 +1,4 @@
--- Taskpilot database bootstrap (non-destructive)
+-- Vecta database bootstrap (non-destructive)
 --
 -- For new installations this file applies the initial migration and records it.
 -- For upgrades, use: php api/migrate.php

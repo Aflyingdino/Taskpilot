@@ -1,10 +1,11 @@
 openapi: 3.0.3
 info:
-  title: Taskpilot API
+  title: Vecta API
   version: 1.0.0
-  description: Session-based API for Taskpilot frontend.
+  description: Session-based API for Vecta frontend.
   license:
     name: MIT
+    url: https://opensource.org/licenses/MIT
 servers:
   - url: /api
 security:
@@ -344,7 +345,7 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: taskpilot_session
+      name: vecta_session
     csrfToken:
       type: apiKey
       in: header
