@@ -1,4 +1,5 @@
-const BASE = '/api'
+const BASE = 'api/index.php'
+const FALLBACK_BASE = 'api/index.php'
 const CSRF_HEADER = 'X-CSRF-Token'
 
 let csrfToken = null
