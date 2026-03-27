@@ -2,6 +2,20 @@
 
 Vecta is a project and board management app with a Vue frontend and a PHP/MySQL backend API.
 
+## Quick Navigation
+
+- [Stack](#stack)
+- [Repository Structure](#repository-structure)
+- [Requirements](#requirements)
+- [Local Setup](#local-setup)
+- [Environment Variables](#environment-variables)
+- [Database Migration and Versioning Strategy](#database-migration-and-versioning-strategy)
+- [Hosting and Deployment (School Plesk Server)](#hosting-and-deployment-school-plesk-server)
+- [API Documentation](#api-documentation)
+- [Frontend Changes and Backend Integration](#frontend-changes-and-backend-integration)
+- [Testing and Verification](#testing-and-verification)
+- [Pre-PR Gate (Required)](#pre-pr-gate-required)
+
 ## Stack
 
 - Frontend: Vue 3, Vue Router, Vite
@@ -10,13 +24,15 @@ Vecta is a project and board management app with a Vue frontend and a PHP/MySQL 
 
 ## Repository Structure
 
-- `src/`: Vue application
-- `api/`: PHP API and route handlers
-- `db/migrations/`: versioned database migrations
-- `tests/js/`: frontend unit tests
-- `tests/php/`: backend helper/security unit tests
-- `openapi.yaml`: API contract (OpenAPI 3.0)
-- `.github/workflows/build.yml`: CI pipeline
+| Path | Purpose |
+|---|---|
+| `src/` | Vue application |
+| `api/` | PHP API and route handlers |
+| `db/migrations/` | Versioned database migrations |
+| `tests/js/` | Frontend unit tests |
+| `tests/php/` | Backend helper/security unit tests |
+| `openapi.yaml` | API contract (OpenAPI 3.0) |
+| `.github/workflows/build.yml` | CI pipeline |
 
 ## Requirements
 
@@ -30,27 +46,31 @@ Vecta is a project and board management app with a Vue frontend and a PHP/MySQL 
 
 ## Local Setup
 
+> Local development uses the Vite dev server for frontend and PHP's built-in server for API.
+
 1. Install dependencies:
 
 ```bash
 npm ci
 ```
 
-2. Configure environment variables (copy from `.env.example`):
+2. Export environment variables for your shell/session (example):
 
 ```bash
-cp .env.example .env
+export APP_ENV=development
+export APP_DEBUG=1
+export APP_URL=http://localhost:5173
+export ALLOWED_ORIGINS=http://localhost:5173
+export DB_HOST=127.0.0.1
+export DB_PORT=3306
+export DB_NAME=vecta
+export DB_USER=vecta
+export DB_PASS=change_me
 ```
 
-3. Export environment variables for your shell/session (example):
+You can also put these in your shell profile (for example `~/.bashrc`) for convenience.
 
-```bash
-set -a
-source .env
-set +a
-```
-
-4. Create database and user (example):
+3. Create database and user (example):
 
 ```sql
 CREATE DATABASE vecta CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -59,19 +79,19 @@ GRANT ALL PRIVILEGES ON vecta.* TO 'vecta'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-5. Apply database migrations:
+4. Apply database migrations:
 
 ```bash
 php api/migrate.php
 ```
 
-6. Start backend API (development):
+5. Start backend API (development):
 
 ```bash
 php -S localhost:8000 api/dev-router.php
 ```
 
-7. Start frontend:
+6. Start frontend:
 
 ```bash
 npm run dev
@@ -81,7 +101,13 @@ Frontend runs on `http://localhost:5173` and proxies `/api` calls to `http://loc
 
 ## Environment Variables
 
-Use environment variables only for production and local runtime configuration.
+Environment variables are key/value settings (for example `DB_HOST=127.0.0.1`) that your PHP app reads at runtime.
+
+This project reads them in `api/config.php` using `getenv(...)`.
+
+In production (`APP_ENV=production`), this app requires: `APP_URL`, `ALLOWED_ORIGINS`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`.
+
+> Tip: if one required variable is missing in production, the backend can fail before handling requests.
 
 | Variable | Required in production | Description |
 |---|---|---|
@@ -101,6 +127,48 @@ Use environment variables only for production and local runtime configuration.
 | `MAX_JSON_BYTES` | No | Max JSON request size |
 | `SECURITY_LOG_FILE` | No | Security log file path |
 | `RATE_LIMIT_*` | No | Per-endpoint limits |
+
+### Where To Set Them On Plesk
+
+1. Open your domain in Plesk.
+2. Go to **Apache & nginx Settings**.
+3. In **Additional Apache directives** add lines like:
+
+```apache
+SetEnv APP_ENV production
+SetEnv APP_DEBUG 0
+SetEnv APP_URL https://your-domain.example
+SetEnv ALLOWED_ORIGINS https://your-domain.example
+SetEnv DB_HOST 127.0.0.1
+SetEnv DB_PORT 3306
+SetEnv DB_NAME your_db_name
+SetEnv DB_USER your_db_user
+SetEnv DB_PASS your_db_password
+```
+
+4. Save and apply.
+
+### How To Check They Are Actually Loaded
+
+Use one of these methods:
+
+1. Temporary PHP check file (recommended for beginners):
+
+```php
+<?php
+header('Content-Type: text/plain; charset=utf-8');
+foreach (['APP_ENV','APP_URL','ALLOWED_ORIGINS','DB_HOST','DB_NAME','DB_USER'] as $k) {
+  echo $k . '=' . (getenv($k) ?: '<missing>') . PHP_EOL;
+}
+```
+
+Upload it temporarily, open it in browser, then delete it after checking.
+
+2. SSH check (if shell access is enabled):
+
+```bash
+php -r 'foreach (["APP_ENV","APP_URL","DB_HOST","DB_NAME"] as $k) { echo $k."=".(getenv($k)?:"<missing>").PHP_EOL; }'
+```
 
 ## Database Migration and Versioning Strategy
 
@@ -122,76 +190,144 @@ The project now uses versioned SQL migrations in `db/migrations/`.
 4. Run `php api/migrate.php`.
 5. Verify `schema_migrations` contains the newly applied versions.
 
+### How To Check Migration Status
+
+1. Check that migration files exist in `db/migrations/`.
+2. Run the migration command:
+
+```bash
+php api/migrate.php
+```
+
+If everything is already up to date, the command will print only `SKIP ...` lines and `Applied 0 migration(s)`.
+
+3. In phpMyAdmin, open your database and run:
+
+```sql
+SELECT version, applied_at
+FROM schema_migrations
+ORDER BY applied_at DESC;
+```
+
 `db.sql` is now a non-destructive bootstrap convenience file for MySQL CLI and no longer drops tables.
 
-## Backend Deployment
+## Hosting and Deployment (School Plesk Server)
 
-### Runtime Expectations
+This project is hosted with frontend and backend on the same Plesk server.
 
-- PHP 8.2+ (FPM or Apache module)
-- MySQL/MariaDB reachable from PHP runtime
-- Sessions enabled and writable temp/session path
-- HTTPS in production (secure cookies)
+Deployment path:
 
-### Apache / Plesk Notes
+`main` -> GitHub Actions build -> `production` branch -> `git pull` on server
 
-- Ensure `mod_rewrite` is enabled.
-- Keep `api/.htaccess` active.
-- Route all `/api/*` requests to `api/index.php`.
-- Set production variables in hosting environment (Plesk domain settings or Apache vhost env directives).
+Deployment flow in this repository:
 
-Example Apache vhost fragment:
+1. Push to `main`.
+2. GitHub Actions builds the Vue app.
+3. Action publishes built files (`dist/*`) to the `production` branch.
+4. On the server, deploy by running `git pull` in the site directory.
 
-```apache
-SetEnv APP_ENV production
-SetEnv APP_DEBUG 0
-SetEnv APP_URL https://vecta.example.com
-SetEnv ALLOWED_ORIGINS https://vecta.example.com
-SetEnv DB_HOST 127.0.0.1
-SetEnv DB_PORT 3306
-SetEnv DB_NAME vecta
-SetEnv DB_USER vecta
-SetEnv DB_PASS <secure-password>
+### What Gets Served
 
-RewriteEngine On
-RewriteRule ^/api/(.*)$ /api/index.php [QSA,L]
+- Frontend: built static files from `production` branch.
+- Backend: PHP API in `api/`.
+- API routing: handled by `api/.htaccess`, which rewrites requests to `api/index.php`.
+
+> This keeps frontend and backend under one host while still using `/api/*` routes.
+
+### Beginner-Friendly Server Checklist
+
+After each deploy:
+
+1. Pull latest changes on server:
+
+```bash
+git pull origin production
 ```
 
-### Nginx Equivalent
+2. Re-run migrations:
 
-- Rewrite `/api/*` to `api/index.php` while preserving query string.
-- Pass requests to PHP-FPM.
-- Keep request size limits aligned with `MAX_JSON_BYTES`.
-
-Example Nginx location blocks:
-
-```nginx
-location /api/ {
-  try_files $uri /api/index.php?$query_string;
-}
-
-location ~ \.php$ {
-  include fastcgi_params;
-  fastcgi_param APP_ENV production;
-  fastcgi_param APP_DEBUG 0;
-  fastcgi_param APP_URL https://vecta.example.com;
-  fastcgi_param ALLOWED_ORIGINS https://vecta.example.com;
-  fastcgi_param DB_HOST 127.0.0.1;
-  fastcgi_param DB_PORT 3306;
-  fastcgi_param DB_NAME vecta;
-  fastcgi_param DB_USER vecta;
-  fastcgi_param DB_PASS <secure-password>;
-  fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-}
+```bash
+php api/migrate.php
 ```
 
-### Production Checklist
+3. Verify backend health in browser:
+   - Open your app URL.
+   - Open devtools network tab.
+   - Confirm requests to `/api/...` return expected status codes (not `500`).
 
-- `APP_ENV=production`
-- `APP_DEBUG=0`
-- Strong `DB_PASS`
-- `ALLOWED_ORIGINS` restricted to trusted frontend origins
-- HTTPS enabled
+4. Verify login flow:
+   - Request `GET /api/csrf`.
+   - Then test login/register in the UI.
+
+### How To Check Which Web Server You Are Using
+
+In Plesk:
+
+1. Open your domain.
+2. Go to **Apache & nginx Settings**.
+3. If nginx is enabled there, you are usually running nginx in front of Apache.
+
+By SSH (if available):
+
+```bash
+ps aux | egrep 'nginx|apache2|httpd' | grep -v grep
+```
+
+### HTTPS, DNS, Backups, and Monitoring
+
+Current repository status:
+
+- No DNS automation is configured in this repo.
+- No backup automation is configured in this repo.
+- No monitoring/alerting integration is configured in this repo.
+
+These are usually managed directly in Plesk and your school infrastructure.
+
+Minimum recommended checks in Plesk:
+
+1. SSL/TLS certificate is active and auto-renew enabled.
+2. Database backup exists (or exported dump scheduled).
+3. Access/error logs are visible and checked after deploy.
+4. Git integration points to the `production` branch.
+
+### Troubleshooting (Plesk)
+
+Use this quick table when something breaks after deploy.
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Frontend opens, but API calls fail with `404` | API rewrite is not active | Confirm `api/.htaccess` exists and Apache rewrite is enabled. In Plesk, check **Apache & nginx Settings** and keep Apache processing enabled. |
+| API returns `500 Internal Server Error` | Missing env vars, bad DB credentials, or PHP error | Check Plesk logs first. Then verify env vars and DB credentials. Run `php api/migrate.php` to validate DB connectivity and schema state. |
+| Error: `Missing required environment variable: ...` | Required production env var is not set | Add the missing `SetEnv ...` line in Plesk Apache directives, save, and retry. |
+| Login/register fails with `419` | CSRF flow broken (token missing/stale) | Ensure frontend requests include cookies and fetch `/api/csrf` before POST/PATCH/DELETE actions. Hard refresh browser and retry. |
+| Browser shows CORS error | `ALLOWED_ORIGINS` does not match the real frontend origin | Set `ALLOWED_ORIGINS` to the exact protocol + domain (for example `https://your-domain.example`). No trailing slash. |
+| Database connection failed (`SQLSTATE[HY000] [1045]`) | Wrong DB user/password or host | Verify DB user/password in Plesk and update `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`. Test with `php api/migrate.php`. |
+| Database/table errors after update | New migration not applied | Run `php api/migrate.php` and check `schema_migrations` in phpMyAdmin. |
+| Refresh on a frontend route gives `404` | SPA fallback not configured in deployed static files | Confirm production branch contains `.htaccess` with `ErrorDocument 404 /index.html` (created by CI). Pull latest `production` branch again. |
+
+#### Log Locations To Check First
+
+1. Plesk domain logs (access/error logs in Plesk UI).
+2. PHP error logs for the domain.
+3. Application security log file path from `SECURITY_LOG_FILE` (default temp dir).
+
+#### Quick Recovery Procedure
+
+1. Pull latest production build:
+
+```bash
+git pull origin production
+```
+
+2. Re-run migrations:
+
+```bash
+php api/migrate.php
+```
+
+3. Re-check environment variables in Plesk.
+4. Test `GET /api/csrf` in browser devtools.
+5. Retry login and one create/update action in the app.
 
 ## API Documentation
 
@@ -392,19 +528,13 @@ The frontend was refactored from local-state-first behavior to backend-driven st
 
 Key updates:
 
-- `src/utils/api.js`
-  - central API client
-  - CSRF token bootstrap and automatic retry on `419`
-  - cookie-based session requests (`credentials: include`)
-- `src/stores/authStore.js`
-  - session restore via `/api/auth/me`
-  - login/register/logout via API
-- `src/stores/projectStore.js`
-  - project, member, share, and schedule actions now persist through API
-- `src/stores/boardStore.js`
-  - groups/tasks/comments/notes/labels operations now call API routes
-- `vite.config.js`
-  - `/api` dev proxy to local PHP server
+| File | What changed |
+|---|---|
+| `src/utils/api.js` | Central API client, CSRF bootstrap, automatic retry on `419`, cookie-based requests (`credentials: include`) |
+| `src/stores/authStore.js` | Session restore via `/api/auth/me`; login/register/logout through API |
+| `src/stores/projectStore.js` | Project, member, share, and schedule actions persist via API |
+| `src/stores/boardStore.js` | Groups/tasks/comments/notes/labels operations call API routes |
+| `vite.config.js` | `/api` dev proxy to local PHP server |
 
 ## Testing and Verification
 
@@ -412,11 +542,13 @@ Key updates:
 
 CI runs on every push and pull request:
 
-- frontend build (`npm run build`)
-- PHP syntax validation for all `api/*.php`
-- JavaScript unit tests (`npm run test:js`)
-- PHP helper/security unit tests (`npm run test:php`)
-- OpenAPI contract lint (`npm run lint:openapi`)
+| Check | Command |
+|---|---|
+| Frontend build | `npm run build` |
+| PHP syntax validation (`api/*.php`) | `find api -name "*.php" -print0 \| xargs -0 -n1 php -l` |
+| JavaScript unit tests | `npm run test:js` |
+| PHP helper/security unit tests | `npm run test:php` |
+| OpenAPI contract lint | `npm run lint:openapi` |
 
 ### Local Verification Commands
 
@@ -452,5 +584,5 @@ Required merge conditions:
 
 - Branch is rebased/merged with `main` and conflict-free.
 - CI is green on the pull request.
-- No secrets are committed (`.env` ignored, only `.env.example` tracked).
+- No secrets are committed (`.env` and other local secret files remain untracked).
 - Deployment variables are configured in the target environment.
