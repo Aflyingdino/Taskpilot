@@ -481,6 +481,15 @@ function path(): string
 
     $uri = '/' . ltrim($uri, '/');
 
+    // Support direct entrypoint routing without webserver rewrites:
+    // /api/index.php/csrf -> /csrf
+    if ($uri === '/index.php') {
+        return '/';
+    }
+    if (str_starts_with($uri, '/index.php/')) {
+        return (string) substr($uri, 10);
+    }
+
     // Keep dev-router compatibility where requests arrive as /api/*.
     if ($uri === '/api') {
         return '/';

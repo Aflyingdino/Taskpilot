@@ -1,5 +1,5 @@
-const BASE = '/api'
-const FALLBACK_BASE = '/api/index.php'
+const BASE = '/Vecta/api/index.php'
+const FALLBACK_BASE = '/Vecta/api/index.php'
 const CSRF_HEADER = 'X-CSRF-Token'
 
 let csrfToken = null
@@ -28,7 +28,7 @@ async function fetchCsrfToken(forceRefresh = false) {
       headers: { Accept: 'application/json' },
     })
 
-    // Auto-switch when /api rewrite is unavailable.
+    // Auto-switch to query fallback if path-info routing is unavailable.
     if (!useFallbackRouting && res.status === 404) {
       useFallbackRouting = true
       return run()

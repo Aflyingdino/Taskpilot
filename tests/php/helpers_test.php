@@ -53,9 +53,20 @@ $_SERVER['REQUEST_URI'] = '/api/projects/10';
 $_SERVER['SCRIPT_NAME'] = '/dev-router.php';
 expectSame('/projects/10', path(), 'path keeps dev-router compatibility');
 
+$_SERVER['REQUEST_URI'] = '/api/index.php/csrf';
+$_SERVER['SCRIPT_NAME'] = '/api/index.php';
+expectSame('/csrf', path(), 'path supports index.php path-info routing');
+
+$_SERVER['REQUEST_URI'] = '/api/index.php';
+$_SERVER['SCRIPT_NAME'] = '/api/index.php';
+expectSame('/', path(), 'path resolves bare index.php entrypoint');
+
 $_GET['route'] = '/csrf';
 expectSame('/csrf', path(), 'path supports query route fallback');
 unset($_GET['route']);
+
+$_SERVER['REQUEST_URI'] = '/api/projects/10';
+$_SERVER['SCRIPT_NAME'] = '/dev-router.php';
 
 expectSame(true, isSafeMethod('GET'), 'GET is safe method');
 expectSame(false, isSafeMethod('PATCH'), 'PATCH is unsafe method');
