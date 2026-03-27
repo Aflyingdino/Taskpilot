@@ -72,7 +72,7 @@ define('PASSWORD_MIN_LENGTH', envInt('PASSWORD_MIN_LENGTH', 10));
 
 /* Session lifetime in seconds */
 define('SESSION_LIFETIME', envInt('SESSION_LIFETIME', 86400));
-define('SESSION_IDLE_TIMEOUT', envInt('SESSION_IDLE_TIMEOUT', 1800));
+define('SESSION_IDLE_TIMEOUT', envInt('SESSION_IDLE_TIMEOUT', 900)); // 15 minutes
 define('SESSION_REGENERATE_INTERVAL', envInt('SESSION_REGENERATE_INTERVAL', 900));
 define('SESSION_COOKIE_NAME', APP_ENV === 'production' ? '__Host-vecta_session' : 'vecta_session');
 

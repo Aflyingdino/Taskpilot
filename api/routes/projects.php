@@ -355,8 +355,13 @@ function handleDeleteProject(int $id): never
     $uid = requireAuth();
     requireProjectOwner($id, $uid);
 
+    $stmt = db()->prepare('SELECT title FROM projects WHERE project_id = ?');
+    $stmt->execute([$id]);
+    $proj = $stmt->fetch();
+
     db()->prepare('DELETE FROM projects WHERE project_id = ?')->execute([$id]);
 
+    securityLog('project_deleted', ['projectId' => $id, 'projectTitle' => $proj['title'] ?? 'Unknown']);
     jsonSuccess('Project deleted');
 }
 

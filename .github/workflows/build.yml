@@ -95,7 +95,17 @@ jobs:
           fi
 
           find /tmp/production -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+
+          # Frontend build output
           cp -r dist/. /tmp/production/
+
+          # Backend + database files required on server
+          cp -r api /tmp/production/
+          cp -r db /tmp/production/
+
+          # Keep key project files needed in production
+          cp openapi.yaml /tmp/production/
+          cp readme.md /tmp/production/
 
           cd /tmp/production
           git add -A

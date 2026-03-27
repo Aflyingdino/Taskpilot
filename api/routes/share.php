@@ -33,6 +33,10 @@ function handleRevokeShare(int $projectId): never
 
 function handleGetPublicProject(string $token): never
 {
+    // Rate limit per token attempt to prevent brute forcing
+    // (in addition to IP-based rate limit from middleware)
+    enforceRateLimit('public-token:' . sha1($token), 10, 300);
+
     $db = db();
     $stmt = $db->prepare('SELECT project_id, title, description, main_color, created_at FROM projects WHERE public_token = ?');
     $stmt->execute([$token]);

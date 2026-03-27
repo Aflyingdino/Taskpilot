@@ -61,6 +61,7 @@ function applySecurityHeaders(): void
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('Cross-Origin-Opener-Policy: same-origin');
     header('Cross-Origin-Resource-Policy: same-site');
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'");
 }
 
 function applyCorsHeaders(): void
@@ -114,7 +115,10 @@ function enforceRateLimit(string $bucket, int $limit, int $windowSeconds): void
 
     $handle = fopen($file, 'c+');
     if ($handle === false) {
-        return;
+        // Log the failure instead of silently allowing unlimited requests
+        securityLog('rate_limit_file_open_failed', ['bucket' => $bucket, 'file' => $file]);
+        // As a safety measure for when filesystem is unavailable, reject request
+        jsonError('Service temporarily unavailable', 503);
     }
 
     flock($handle, LOCK_EX);
@@ -222,9 +226,21 @@ function normalizeEmail(string $email): string
 
 function validPassword(string $password): bool
 {
-    return mb_strlen($password) >= PASSWORD_MIN_LENGTH
-        && preg_match('/[A-Za-z]/', $password)
-        && preg_match('/\d/', $password);
+    $length = mb_strlen($password);
+    // Require: 10+ chars, at least 1 upper, 1 lower, 1 digit
+    if ($length < PASSWORD_MIN_LENGTH) {
+        return false;
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+        return false; // Must have uppercase
+    }
+    if (!preg_match('/[a-z]/', $password)) {
+        return false; // Must have lowercase
+    }
+    if (!preg_match('/\d/', $password)) {
+        return false; // Must have digit
+    }
+    return true;
 }
 
 function validColor(?string $color): bool
@@ -244,7 +260,16 @@ function validDateString(?string $value): bool
 function validDateTimeString(?string $value): bool
 {
     if ($value === null || $value === '') return true;
-    return strtotime($value) !== false;
+    // Require strict ISO 8601 format: YYYY-MM-DD HH:MM:SS
+    if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value)) return false;
+    // Validate that it's a real date/time
+    [$date, $time] = explode(' ', $value);
+    [$year, $month, $day] = array_map('intval', explode('-', $date));
+    [$hours, $minutes, $seconds] = array_map('intval', explode(':', $time));
+    return checkdate($month, $day, $year) 
+        && $hours >= 0 && $hours < 24 
+        && $minutes >= 0 && $minutes < 60 
+        && $seconds >= 0 && $seconds < 60;
 }
 
 function clampString(?string $s, int $max): ?string
@@ -434,6 +459,13 @@ function method(): string
 
 function path(): string
 {
+    // Fallback mode for hosts without /api rewrite rules:
+    // /api/index.php?route=/csrf
+    $queryRoute = $_GET['route'] ?? null;
+    if (is_string($queryRoute) && $queryRoute !== '') {
+        return '/' . ltrim($queryRoute, '/');
+    }
+
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 
     // When deployed under a subdirectory (e.g. /myapp/api), strip script dir first.
@@ -448,6 +480,15 @@ function path(): string
     }
 
     $uri = '/' . ltrim($uri, '/');
+
+    // Support direct entrypoint routing without webserver rewrites:
+    // /api/index.php/csrf -> /csrf
+    if ($uri === '/index.php') {
+        return '/';
+    }
+    if (str_starts_with($uri, '/index.php/')) {
+        return (string) substr($uri, 10);
+    }
 
     // Keep dev-router compatibility where requests arrive as /api/*.
     if ($uri === '/api') {

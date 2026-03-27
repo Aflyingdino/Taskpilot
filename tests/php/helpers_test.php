@@ -30,15 +30,16 @@ expectTrue(!validEmail('nope@'), 'validEmail rejects invalid email');
 
 expectSame('john@example.com', normalizeEmail('  John@Example.com '), 'normalizeEmail lowercases and trims');
 
-expectTrue(validPassword('abc1234567'), 'validPassword accepts strong password');
+expectTrue(validPassword('Abc1234567'), 'validPassword accepts strong password');
 expectTrue(!validPassword('abcdefgxyz'), 'validPassword rejects no-digit password');
+expectTrue(!validPassword('abc1234567'), 'validPassword rejects password without uppercase');
 
 expectTrue(validColor('#a1B2c3'), 'validColor accepts hex color');
 expectTrue(!validColor('blue'), 'validColor rejects non-hex string');
 
 expectTrue(validDateString('2026-03-16'), 'validDateString accepts yyyy-mm-dd');
 expectTrue(!validDateString('2026-99-99'), 'validDateString rejects invalid date');
-expectTrue(validDateTimeString('2026-03-16T13:45:00Z'), 'validDateTimeString accepts ISO datetime');
+expectTrue(validDateTimeString('2026-03-16 13:45:00'), 'validDateTimeString accepts strict datetime');
 
 expectSame('fakeadmin', normalizeModerationText('F@KE---ADM111N'), 'normalizeModerationText strips and normalizes');
 
@@ -51,6 +52,21 @@ expectSame('/projects/10', path(), 'path strips mounted script directory and api
 $_SERVER['REQUEST_URI'] = '/api/projects/10';
 $_SERVER['SCRIPT_NAME'] = '/dev-router.php';
 expectSame('/projects/10', path(), 'path keeps dev-router compatibility');
+
+$_SERVER['REQUEST_URI'] = '/api/index.php/csrf';
+$_SERVER['SCRIPT_NAME'] = '/api/index.php';
+expectSame('/csrf', path(), 'path supports index.php path-info routing');
+
+$_SERVER['REQUEST_URI'] = '/api/index.php';
+$_SERVER['SCRIPT_NAME'] = '/api/index.php';
+expectSame('/', path(), 'path resolves bare index.php entrypoint');
+
+$_GET['route'] = '/csrf';
+expectSame('/csrf', path(), 'path supports query route fallback');
+unset($_GET['route']);
+
+$_SERVER['REQUEST_URI'] = '/api/projects/10';
+$_SERVER['SCRIPT_NAME'] = '/dev-router.php';
 
 expectSame(true, isSafeMethod('GET'), 'GET is safe method');
 expectSame(false, isSafeMethod('PATCH'), 'PATCH is unsafe method');

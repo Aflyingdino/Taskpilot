@@ -4,27 +4,47 @@ const CSRF_HEADER = 'X-CSRF-Token'
 
 let csrfToken = null
 let csrfPromise = null
+let useFallbackRouting = false
+
+function buildUrl(path) {
+  if (useFallbackRouting) {
+    return `${FALLBACK_BASE}?route=${encodeURIComponent(path)}`
+  }
+  return `${BASE}${path}`
+}
+
+async function parseJson(res) {
+  return res.json().catch(() => ({}))
+}
 
 async function fetchCsrfToken(forceRefresh = false) {
   if (csrfToken && !forceRefresh) return csrfToken
   if (csrfPromise && !forceRefresh) return csrfPromise
 
-  csrfPromise = fetch(`${BASE}/csrf`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
+  const run = async () => {
+    const res = await fetch(buildUrl('/csrf'), {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
+
+    // Auto-switch to query fallback if path-info routing is unavailable.
+    if (!useFallbackRouting && res.status === 404) {
+      useFallbackRouting = true
+      return run()
+    }
+
+    const data = await parseJson(res)
+    if (!res.ok || !data.token) {
+      throw new Error(data.error || `Request failed (${res.status})`)
+    }
+    csrfToken = data.token
+    return csrfToken
+  }
+
+  csrfPromise = run().finally(() => {
+    csrfPromise = null
   })
-    .then(async (res) => {
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data.token) {
-        throw new Error(data.error || `Request failed (${res.status})`)
-      }
-      csrfToken = data.token
-      return csrfToken
-    })
-    .finally(() => {
-      csrfPromise = null
-    })
 
   return csrfPromise
 }
@@ -41,11 +61,16 @@ async function request(path, options = {}, allowRetry = true) {
     headers[CSRF_HEADER] = await fetchCsrfToken()
   }
 
-  const res = await fetch(BASE + path, {
+  const res = await fetch(buildUrl(path), {
     headers,
     credentials: 'include',
     ...options,
   })
+
+  if (!useFallbackRouting && res.status === 404) {
+    useFallbackRouting = true
+    return request(path, options, allowRetry)
+  }
 
   if (res.status === 204) return null
 
@@ -54,7 +79,7 @@ async function request(path, options = {}, allowRetry = true) {
     return request(path, options, false)
   }
 
-  const data = await res.json().catch(() => ({}))
+  const data = await parseJson(res)
 
   if (data?.csrfToken) {
     csrfToken = data.csrfToken
