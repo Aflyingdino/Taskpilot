@@ -459,6 +459,13 @@ function method(): string
 
 function path(): string
 {
+    // Fallback mode for hosts without /api rewrite rules:
+    // /api/index.php?route=/csrf
+    $queryRoute = $_GET['route'] ?? null;
+    if (is_string($queryRoute) && $queryRoute !== '') {
+        return '/' . ltrim($queryRoute, '/');
+    }
+
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
 
     // When deployed under a subdirectory (e.g. /myapp/api), strip script dir first.
