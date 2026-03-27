@@ -30,15 +30,16 @@ expectTrue(!validEmail('nope@'), 'validEmail rejects invalid email');
 
 expectSame('john@example.com', normalizeEmail('  John@Example.com '), 'normalizeEmail lowercases and trims');
 
-expectTrue(validPassword('abc1234567'), 'validPassword accepts strong password');
+expectTrue(validPassword('Abc1234567'), 'validPassword accepts strong password');
 expectTrue(!validPassword('abcdefgxyz'), 'validPassword rejects no-digit password');
+expectTrue(!validPassword('abc1234567'), 'validPassword rejects password without uppercase');
 
 expectTrue(validColor('#a1B2c3'), 'validColor accepts hex color');
 expectTrue(!validColor('blue'), 'validColor rejects non-hex string');
 
 expectTrue(validDateString('2026-03-16'), 'validDateString accepts yyyy-mm-dd');
 expectTrue(!validDateString('2026-99-99'), 'validDateString rejects invalid date');
-expectTrue(validDateTimeString('2026-03-16T13:45:00Z'), 'validDateTimeString accepts ISO datetime');
+expectTrue(validDateTimeString('2026-03-16 13:45:00'), 'validDateTimeString accepts strict datetime');
 
 expectSame('fakeadmin', normalizeModerationText('F@KE---ADM111N'), 'normalizeModerationText strips and normalizes');
 
