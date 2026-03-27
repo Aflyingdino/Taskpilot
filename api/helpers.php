@@ -226,21 +226,7 @@ function normalizeEmail(string $email): string
 
 function validPassword(string $password): bool
 {
-    $length = mb_strlen($password);
-    // Require: 10+ chars, at least 1 upper, 1 lower, 1 digit
-    if ($length < PASSWORD_MIN_LENGTH) {
-        return false;
-    }
-    if (!preg_match('/[A-Z]/', $password)) {
-        return false; // Must have uppercase
-    }
-    if (!preg_match('/[a-z]/', $password)) {
-        return false; // Must have lowercase
-    }
-    if (!preg_match('/\d/', $password)) {
-        return false; // Must have digit
-    }
-    return true;
+    return trim($password) !== '';
 }
 
 function validColor(?string $color): bool

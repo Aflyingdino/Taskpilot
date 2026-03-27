@@ -31,8 +31,9 @@ expectTrue(!validEmail('nope@'), 'validEmail rejects invalid email');
 expectSame('john@example.com', normalizeEmail('  John@Example.com '), 'normalizeEmail lowercases and trims');
 
 expectTrue(validPassword('Abc1234567'), 'validPassword accepts strong password');
-expectTrue(!validPassword('abcdefgxyz'), 'validPassword rejects no-digit password');
-expectTrue(!validPassword('abc1234567'), 'validPassword rejects password without uppercase');
+expectTrue(validPassword('abcdefgxyz'), 'validPassword accepts alphabetic password');
+expectTrue(validPassword('abc1234567'), 'validPassword accepts password without uppercase');
+expectTrue(!validPassword('   '), 'validPassword rejects whitespace-only password');
 
 expectTrue(validColor('#a1B2c3'), 'validColor accepts hex color');
 expectTrue(!validColor('blue'), 'validColor rejects non-hex string');

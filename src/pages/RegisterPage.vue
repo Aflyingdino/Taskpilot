@@ -19,10 +19,6 @@ async function handleRegister() {
     localError.value = 'Passwords do not match'
     return
   }
-  if (password.value.length < 6) {
-    localError.value = 'Password must be at least 6 characters'
-    return
-  }
   try {
     await register({ name: name.value, email: email.value, password: password.value })
     await fetchProjects()
@@ -56,7 +52,7 @@ const displayError = () => localError.value || authError.value
         </label>
         <label class="form-label">
           Password
-          <input v-model="password" type="password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password" />
+          <input v-model="password" type="password" class="form-input" placeholder="Enter password" required autocomplete="new-password" />
         </label>
         <label class="form-label">
           Confirm password
