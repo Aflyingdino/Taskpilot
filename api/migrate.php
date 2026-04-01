@@ -50,7 +50,14 @@ function splitSqlStatements(string $sql): array
     return $statements;
 }
 
-$pdo = db();
+$pdo = null;
+try {
+    $pdo = db();
+} catch (Throwable $e) {
+    fwrite(STDERR, "Database connection failed: {$e->getMessage()}\n");
+    fwrite(STDERR, "Check DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS environment variables.\n");
+    exit(1);
+}
 $migrationsDir = __DIR__ . '/../db/migrations';
 
 if (!is_dir($migrationsDir)) {

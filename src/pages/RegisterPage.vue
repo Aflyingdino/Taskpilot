@@ -49,10 +49,6 @@ async function handleRegister() {
     localError.value = text.value.mismatch
     return
   }
-  if (password.value.length < 6) {
-    localError.value = text.value.passwordMin
-    return
-  }
   try {
     await register({ name: name.value, email: email.value, password: password.value })
     await fetchProjects()
@@ -85,8 +81,8 @@ const displayError = () => localError.value || authError.value
           <input v-model="email" type="email" class="form-input" placeholder="you@example.com" required autocomplete="email" />
         </label>
         <label class="form-label">
-          {{ text.password }}
-          <input v-model="password" type="password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password" />
+          Password
+          <input v-model="password" type="password" class="form-input" placeholder="Enter password" required autocomplete="new-password" />
         </label>
         <label class="form-label">
           {{ text.confirmPassword }}

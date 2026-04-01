@@ -104,6 +104,20 @@ function handleRemoveMember(int $projectId, int $targetUserId): never
         WHERE t.project_id = ? AND ta.user_id = ?
     ')->execute([$projectId, $targetUserId]);
 
+    // Also remove their comments and notes from this project
+    db()->prepare('
+        DELETE c FROM comments c
+        JOIN tasks t ON t.task_id = c.task_id
+        WHERE t.project_id = ? AND c.user_id = ?
+    ')->execute([$projectId, $targetUserId]);
+
+    db()->prepare('
+        DELETE n FROM task_notes n
+        JOIN tasks t ON t.task_id = n.task_id
+        WHERE t.project_id = ? AND n.user_id = ?
+    ')->execute([$projectId, $targetUserId]);
+
+    securityLog('member_removed', ['projectId' => $projectId, 'targetUserId' => $targetUserId]);
     logActivity($projectId, $uid, 'member_removed', 'Member removed');
 
     jsonSuccess('Member removed');

@@ -55,7 +55,11 @@ function handleUpdateNote(int $noteId): never
     $note = $stmt->fetch();
     if (!$note) jsonError('Note not found', 404);
 
-    requireProjectAccess((int) $note['project_id'], $uid);
+    // Only the author or an admin/owner can edit
+    $role = requireProjectAccess((int) $note['project_id'], $uid);
+    if ((int)$note['user_id'] !== $uid && $role === 'collaborator') {
+        jsonError('You can only edit your own notes', 403);
+    }
 
     $data = jsonBody();
     $sets = [];
@@ -104,7 +108,11 @@ function handleDeleteNote(int $noteId): never
     $note = $stmt->fetch();
     if (!$note) jsonError('Note not found', 404);
 
-    requireProjectAccess((int) $note['project_id'], $uid);
+    // Only the author or an admin/owner can delete
+    $role = requireProjectAccess((int) $note['project_id'], $uid);
+    if ((int)$note['user_id'] !== $uid && $role === 'collaborator') {
+        jsonError('You can only delete your own notes', 403);
+    }
 
     $db->prepare('DELETE FROM task_notes WHERE note_id = ?')->execute([$noteId]);
 

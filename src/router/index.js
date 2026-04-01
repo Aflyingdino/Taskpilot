@@ -61,13 +61,7 @@ const router = createRouter({
 
 /* ── Navigation guard ── */
 router.beforeEach((to) => {
-  if (to.meta.requiresAuth && !isLoggedIn.value) {
-    return { name: 'login', query: { redirect: to.fullPath } }
-  }
-  // Redirect logged-in users away from auth pages
-  if ((to.name === 'login' || to.name === 'register') && isLoggedIn.value) {
-    return { name: 'dashboard' }
-  }
+  // Auth disabled for development - direct access to all routes
 })
 
 export default router

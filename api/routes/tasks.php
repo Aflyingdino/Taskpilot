@@ -173,7 +173,8 @@ function handleMoveTask(int $taskId): never
 
     $groupId = requireProjectGroup($groupId, (int) $task['project_id']);
 
-    db()->prepare('UPDATE tasks SET group_id = ? WHERE task_id = ?')
+    // Reset position to 0 when moving to new group to avoid collision with existing task positions
+    db()->prepare('UPDATE tasks SET group_id = ?, position = 0 WHERE task_id = ?')
         ->execute([$groupId, $taskId]);
 
     jsonResponse(buildTaskResponse($taskId));

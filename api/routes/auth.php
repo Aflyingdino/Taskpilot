@@ -15,7 +15,7 @@ function handleRegister(): never
     validateUsername($name);
 
     if (!validEmail($email)) jsonError('Invalid email address', 422);
-    if (!validPassword($pass)) jsonError('Password must be at least 10 characters and include letters and numbers', 422);
+    if (!validPassword($pass)) jsonError('Password is required', 422);
 
     enforceRateLimit('register-email:' . sha1($email), RATE_LIMIT_AUTH, RATE_LIMIT_AUTH_WINDOW);
 
