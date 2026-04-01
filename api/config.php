@@ -71,9 +71,9 @@ define('ALLOWED_ORIGINS', envValue('ALLOWED_ORIGINS', APP_URL));
 
 define('DB_HOST', envValue('DB_HOST', '127.0.0.1'));
 define('DB_PORT', envValue('DB_PORT', '3306'));
-define('DB_NAME', requireEnv('DB_NAME'));
-define('DB_USER', requireEnv('DB_USER'));
-define('DB_PASS', requireEnv('DB_PASS'));
+define('DB_NAME', envValue('DB_NAME'));
+define('DB_USER', envValue('DB_USER'));
+define('DB_PASS', envValue('DB_PASS'));
 define('DB_CHARSET', 'utf8mb4');
 
 if (APP_ENV === 'production') {
@@ -111,6 +111,10 @@ function db(): PDO
 {
     static $pdo = null;
     if ($pdo === null) {
+        if (DB_NAME === null || DB_USER === null || DB_PASS === null) {
+            throw new RuntimeException('Missing database credentials: DB_NAME, DB_USER, and DB_PASS are required');
+        }
+
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=%s',
             DB_HOST, DB_PORT, DB_NAME, DB_CHARSET
