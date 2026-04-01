@@ -6,6 +6,7 @@ import { projects, setActiveProject } from '@/stores/projectStore'
 import { user } from '@/stores/authStore'
 import { openTaskDetail } from '@/stores/uiStore'
 import { toggleMuteProject, mutedProjectIds, toggleMuteTask, mutedTaskIds } from '@/stores/notificationStore'
+import { readJson, writeJson } from '@/utils/safeStorage'
 
 
 const router = useRouter()
@@ -161,10 +162,10 @@ function toggleStatFilter(key) {
 }
 
 // ── Activity: read state ──
-const readActivityIds = ref(new Set(JSON.parse(localStorage.getItem('tp_read_activity') || '[]')))
+const readActivityIds = ref(new Set(readJson('tp_read_activity', [])))
 
 function persistRead() {
-  localStorage.setItem('tp_read_activity', JSON.stringify([...readActivityIds.value]))
+  writeJson('tp_read_activity', [...readActivityIds.value])
 }
 function markRead(id) {
   readActivityIds.value.add(id)

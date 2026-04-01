@@ -1,5 +1,6 @@
 import { reactive, computed } from 'vue'
 import { projects } from './projectStore'
+import { readJson, writeJson } from '@/utils/safeStorage'
 
 /* ─────────────────────────────────────────────
    Notification Store
@@ -18,25 +19,22 @@ const _state = reactive({
   lastChecked:     null,    // ISO string — prevents duplicate alerts on reload
 })
 
-// Restore mutes from localStorage
-const _saved = localStorage.getItem('tp_notification_prefs')
+// Persist only non-sensitive UI preferences.
+const _saved = readJson('tp_notification_prefs', null)
 if (_saved) {
-  try {
-    const p = JSON.parse(_saved)
-    _state.mutedProjectIds = new Set(p.mutedProjectIds || [])
-    _state.mutedGroupIds   = new Set(p.mutedGroupIds   || [])
-    _state.mutedTaskIds    = new Set(p.mutedTaskIds    || [])
-    _state.mutedLabelIds   = new Set(p.mutedLabelIds   || [])
-  } catch { /* ignore */ }
+  _state.mutedProjectIds = new Set(_saved.mutedProjectIds || [])
+  _state.mutedGroupIds   = new Set(_saved.mutedGroupIds || [])
+  _state.mutedTaskIds    = new Set(_saved.mutedTaskIds || [])
+  _state.mutedLabelIds   = new Set(_saved.mutedLabelIds || [])
 }
 
 function _savePrefs() {
-  localStorage.setItem('tp_notification_prefs', JSON.stringify({
+  writeJson('tp_notification_prefs', {
     mutedProjectIds: [..._state.mutedProjectIds],
     mutedGroupIds:   [..._state.mutedGroupIds],
     mutedTaskIds:    [..._state.mutedTaskIds],
     mutedLabelIds:   [..._state.mutedLabelIds],
-  }))
+  })
 }
 
 /* ── Computed ── */

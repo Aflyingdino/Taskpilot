@@ -42,6 +42,7 @@ __screenshots__/
 .env
 .env.*
 !.env.example
+api/.secrets.php
 
 # Local nested deployment checkout
 my-vue-app-prod/

@@ -3,16 +3,16 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { projects, activeProjectId } from '@/stores/projectStore'
 import { isLoggedIn, user, logout } from '@/stores/authStore'
-import { openSettings } from '@/stores/uiStore'
+import { readString, writeString } from '@/utils/safeStorage'
 
 const router = useRouter()
 const route = useRoute()
 
-const collapsed = ref(localStorage.getItem('tp_sidebar_collapsed') === '1')
+const collapsed = ref(readString('tp_sidebar_collapsed', '0') === '1')
 
 function toggleCollapse() {
   collapsed.value = !collapsed.value
-  localStorage.setItem('tp_sidebar_collapsed', collapsed.value ? '1' : '0')
+  writeString('tp_sidebar_collapsed', collapsed.value ? '1' : '0')
 }
 
 const currentProjectId = computed(() =>
