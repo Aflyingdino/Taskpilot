@@ -19,6 +19,24 @@
   --color-danger-bg:    #2d1214;
 }
 
+/* ── Light mode theme tokens ── */
+html.light-mode {
+  --color-accent:       #4a8cc7;
+  --color-accent-hover: #3a7ab5;
+  --color-accent-muted: #c5ddf3;
+  --color-surface-0:    #ffffff;
+  --color-surface-1:    #f8fafc;
+  --color-surface-2:    #f0f6fb;
+  --color-surface-3:    #e8f1f8;
+  --color-border:       #d1e4f0;
+  --color-border-sub:   #dfecf4;
+  --color-text-1:       #1a3650;
+  --color-text-2:       #4a6a7f;
+  --color-text-3:       #7a8fa0;
+  --color-danger:       #d84449;
+  --color-danger-bg:    #f8e8ea;
+}
+
 /* ── Accessibility: keyboard focus ── */
 /* Suppress browser default outlines but restore them for keyboard users. */
 :focus:not(:focus-visible) {

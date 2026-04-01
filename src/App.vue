@@ -1,6 +1,13 @@
 ﻿<script setup>
 import { useRoute } from 'vue-router'
+import { onMounted } from 'vue'
+import { applyTheme } from '@/stores/uiStore'
+
 const route = useRoute()
+
+onMounted(() => {
+  applyTheme()
+})
 </script>
 
 <template>

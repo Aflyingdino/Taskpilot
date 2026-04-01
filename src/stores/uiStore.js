@@ -5,6 +5,7 @@ export const ui = reactive({
   editTaskId: null,    // null = create mode, number = edit mode
   detailTaskId: null,  // open task detail panel for this id
   settingsOpen: false,
+  lightMode: localStorage.getItem('theme') === 'light',
 })
 
 export function openCreateTask() {
@@ -36,4 +37,18 @@ export function openSettings() {
 
 export function closeSettings() {
   ui.settingsOpen = false
+}
+
+export function toggleTheme() {
+  ui.lightMode = !ui.lightMode
+  localStorage.setItem('theme', ui.lightMode ? 'light' : 'dark')
+  applyTheme()
+}
+
+export function applyTheme() {
+  if (ui.lightMode) {
+    document.documentElement.classList.add('light-mode')
+  } else {
+    document.documentElement.classList.remove('light-mode')
+  }
 }
