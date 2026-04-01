@@ -1,13 +1,12 @@
 ﻿<script setup>
 import { useRoute } from 'vue-router'
-import { preferences } from '@/stores/preferencesStore'
 const route = useRoute()
 </script>
 
 <template>
   <RouterView v-slot="{ Component, route: r }">
     <Transition name="page" mode="out-in">
-      <component :is="Component" :key="`${r.fullPath}:${preferences.language}`" />
+      <component :is="Component" :key="r.fullPath" />
     </Transition>
   </RouterView>
 </template>

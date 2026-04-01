@@ -1,9 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, authLoading, authError, clearAuthError } from '@/stores/authStore'
 import { fetchProjects } from '@/stores/projectStore'
-import { preferences } from '@/stores/preferencesStore'
 
 const router = useRouter()
 
@@ -13,57 +12,11 @@ const password = ref('')
 const confirm = ref('')
 const localError = ref('')
 
-const copy = computed(() => {
-  if (preferences.language === 'en') {
-    return {
-      title: 'Create account',
-      subtitle: 'Free forever, no credit card needed',
-      fullName: 'Full name',
-      fullNamePlaceholder: 'Jane Smith',
-      email: 'Email',
-      emailPlaceholder: 'you@example.com',
-      password: 'Password',
-      passwordPlaceholder: 'Min. 6 characters',
-      confirmPassword: 'Confirm password',
-      confirmPlaceholder: 'Repeat password',
-      loading: 'Creating account…',
-      create: 'Create account',
-      switchText: 'Already have an account?',
-      switchCta: 'Log in',
-      mismatch: 'Passwords do not match',
-      minLength: 'Password must be at least 6 characters',
-    }
-  }
-
-  return {
-    title: 'Account aanmaken',
-    subtitle: 'Gratis, zonder creditcard',
-    fullName: 'Volledige naam',
-    fullNamePlaceholder: 'Jan Jansen',
-    email: 'E-mail',
-    emailPlaceholder: 'jij@voorbeeld.nl',
-    password: 'Wachtwoord',
-    passwordPlaceholder: 'Min. 6 tekens',
-    confirmPassword: 'Bevestig wachtwoord',
-    confirmPlaceholder: 'Herhaal wachtwoord',
-    loading: 'Account wordt aangemaakt…',
-    create: 'Account aanmaken',
-    switchText: 'Heb je al een account?',
-    switchCta: 'Inloggen',
-    mismatch: 'Wachtwoorden komen niet overeen',
-    minLength: 'Wachtwoord moet minstens 6 tekens hebben',
-  }
-})
-
 async function handleRegister() {
   clearAuthError()
   localError.value = ''
   if (password.value !== confirm.value) {
-    localError.value = copy.value.mismatch
-    return
-  }
-  if (password.value.length < 6) {
-    localError.value = copy.value.minLength
+    localError.value = 'Passwords do not match'
     return
   }
   try {
@@ -83,36 +36,36 @@ const displayError = () => localError.value || authError.value
         <img src="/logo.png" alt="TaskPilot logo" width="28" height="28" />
         <span>TaskPilot</span>
       </router-link>
-      <h1 class="auth-title">{{ copy.title }}</h1>
-      <p class="auth-sub">{{ copy.subtitle }}</p>
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-sub">Free forever, no credit card needed</p>
 
       <div v-if="localError || authError" class="auth-error">{{ localError || authError }}</div>
 
       <form class="auth-form" @submit.prevent="handleRegister">
         <label class="form-label">
-          {{ copy.fullName }}
-          <input v-model="name" type="text" class="form-input" :placeholder="copy.fullNamePlaceholder" required autocomplete="name" />
+          Full name
+          <input v-model="name" type="text" class="form-input" placeholder="Jane Smith" required autocomplete="name" />
         </label>
         <label class="form-label">
-          {{ copy.email }}
-          <input v-model="email" type="email" class="form-input" :placeholder="copy.emailPlaceholder" required autocomplete="email" />
+          Email
+          <input v-model="email" type="email" class="form-input" placeholder="you@example.com" required autocomplete="email" />
         </label>
         <label class="form-label">
-          {{ copy.password }}
-          <input v-model="password" type="password" class="form-input" :placeholder="copy.passwordPlaceholder" required autocomplete="new-password" />
+          Password
+          <input v-model="password" type="password" class="form-input" placeholder="Enter password" required autocomplete="new-password" />
         </label>
         <label class="form-label">
-          {{ copy.confirmPassword }}
-          <input v-model="confirm" type="password" class="form-input" :placeholder="copy.confirmPlaceholder" required autocomplete="new-password" />
+          Confirm password
+          <input v-model="confirm" type="password" class="form-input" placeholder="Repeat password" required autocomplete="new-password" />
         </label>
         <button type="submit" class="btn-submit" :disabled="authLoading">
           <span v-if="authLoading" class="spinner"></span>
-          {{ authLoading ? copy.loading : copy.create }}
+          {{ authLoading ? 'Creating account…' : 'Create account' }}
         </button>
       </form>
 
       <p class="auth-switch">
-        {{ copy.switchText }} <router-link to="/login">{{ copy.switchCta }}</router-link>
+        Already have an account? <router-link to="/login">Log in</router-link>
       </p>
     </div>
   </div>

@@ -12,7 +12,5 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 ) ENGINE=InnoDB;
 
 SOURCE db/migrations/0001_initial_schema.sql;
-SOURCE db/migrations/0002_user_preferences.sql;
 
 INSERT IGNORE INTO schema_migrations (version) VALUES ('0001_initial_schema');
-INSERT IGNORE INTO schema_migrations (version) VALUES ('0002_user_preferences');

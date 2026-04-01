@@ -1,33 +1,5 @@
 <script setup>
-import { computed } from 'vue'
 import PublicNav from '@/components/PublicNav.vue'
-import { preferences } from '@/stores/preferencesStore'
-
-const copy = computed(() => {
-  if (preferences.language === 'en') {
-    return {
-      label: 'Contact',
-      title: 'Get in touch',
-      lead: 'Questions or feedback? Reach out directly.',
-      team: 'Team',
-      role: 'Developer',
-      email: 'Email',
-      portfolio: 'Portfolio',
-      portfolioLink: 'View our portfolio',
-    }
-  }
-
-  return {
-    label: 'Contact',
-    title: 'Neem contact op',
-    lead: 'Vragen of feedback? Neem direct contact op.',
-    team: 'Team',
-    role: 'Developer',
-    email: 'E-mail',
-    portfolio: 'Portfolio',
-    portfolioLink: 'Bekijk ons portfolio',
-  }
-})
 
 const creators = [
   { name: 'Kenji Bras', initials: 'KB' },
@@ -43,32 +15,32 @@ const creators = [
     <main class="contact-content">
 
       <header class="contact-header">
-        <div class="contact-label">{{ copy.label }}</div>
-        <h1>{{ copy.title }}</h1>
-        <p class="lead">{{ copy.lead }}</p>
+        <div class="contact-label">Contact</div>
+        <h1>Get in touch</h1>
+        <p class="lead">Questions or feedback? Reach out directly.</p>
       </header>
 
       <section class="section">
-        <h2 class="section-title">{{ copy.team }}</h2>
+        <h2 class="section-title">Team</h2>
         <div class="creator-grid">
           <div class="creator-card" v-for="c in creators" :key="c.name">
             <div class="creator-initials">{{ c.initials }}</div>
             <div>
               <div class="creator-name">{{ c.name }}</div>
-              <div class="creator-role">{{ copy.role }}</div>
+              <div class="creator-role">Developer</div>
             </div>
           </div>
         </div>
       </section>
 
       <section class="section">
-        <h2 class="section-title">{{ copy.email }}</h2>
+        <h2 class="section-title">Email</h2>
         <a href="mailto:hello@vecta.dev" class="contact-email">hello@vecta.dev</a>
       </section>
 
       <section class="section">
-        <h2 class="section-title">{{ copy.portfolio }}</h2>
-        <a href="#" class="portfolio-link">{{ copy.portfolioLink }}</a>
+        <h2 class="section-title">Portfolio</h2>
+        <a href="#" class="portfolio-link">View our portfolio</a>
       </section>
 
     </main>

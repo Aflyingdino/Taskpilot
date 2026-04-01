@@ -1,12 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isLoggedIn } from '@/stores/authStore'
 
-const GUEST_ACCESS_STORAGE_KEY = 'tp_guest_access'
-
-function hasGuestAccess() {
-  return localStorage.getItem(GUEST_ACCESS_STORAGE_KEY) === '1'
-}
-
 /* ── Lazy-loaded page components ── */
 const HomePage       = () => import('@/pages/HomePage.vue')
 const AboutPage      = () => import('@/pages/AboutPage.vue')
@@ -67,23 +61,7 @@ const router = createRouter({
 
 /* ── Navigation guard ── */
 router.beforeEach((to) => {
-  const queryGuest = Array.isArray(to.query.guest) ? to.query.guest[0] : to.query.guest
-  if (queryGuest === '1') {
-    localStorage.setItem(GUEST_ACCESS_STORAGE_KEY, '1')
-  }
-  if (queryGuest === '0') {
-    localStorage.removeItem(GUEST_ACCESS_STORAGE_KEY)
-  }
-
-  const canAccessProtectedRoutes = isLoggedIn.value || hasGuestAccess()
-
-  if (to.meta.requiresAuth && !canAccessProtectedRoutes) {
-    return { name: 'login', query: { redirect: to.fullPath } }
-  }
-  // Redirect logged-in users away from auth pages
-  if ((to.name === 'login' || to.name === 'register') && isLoggedIn.value) {
-    return { name: 'dashboard' }
-  }
+  // Auth disabled for development - direct access to all routes
 })
 
 export default router

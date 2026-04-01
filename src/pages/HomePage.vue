@@ -1,75 +1,56 @@
 <script setup>
-import { computed } from 'vue'
 import PublicNav from '@/components/PublicNav.vue'
-import { preferences } from '@/stores/preferencesStore'
 
-const copy = computed(() => {
-  if (preferences.language === 'en') {
-    return {
-      heroTitle: 'Manage projects\\nwithout the noise',
-      heroSubtitle: 'TaskPilot gives your team kanban boards, deadlines, labels, and comments in one focused workspace.',
-      ctaStart: 'Get started free',
-      ctaLearn: 'Learn more',
-      featuresLabel: 'Features',
-      featuresTitle: 'Everything your team needs',
-      howLabel: 'How it works',
-      howTitle: 'Up and running in minutes',
-      footerAbout: 'About',
-      footerContact: 'Contact',
-    }
-  }
+const features = [
+  {
+    title: 'Kanban Boards',
+    desc: 'Organize tasks into groups with drag-and-drop between columns.',
+    icon: 'board',
+  },
+  {
+    title: 'Labels & Priorities',
+    desc: 'Tag tasks with custom color labels and four priority levels.',
+    icon: 'label',
+  },
+  {
+    title: 'Deadlines & Calendar',
+    desc: 'Assign due dates and view all tasks in a monthly calendar.',
+    icon: 'calendar',
+  },
+  {
+    title: 'Comments',
+    desc: 'Discuss tasks with your team directly in the task detail view.',
+    icon: 'comment',
+  },
+  {
+    title: 'Public Share Links',
+    desc: 'Share a read-only view of any board with stakeholders via a link.',
+    icon: 'share',
+  },
+  {
+    title: 'Team Roles',
+    desc: 'Invite members as Owner, Admin, or User with scoped permissions.',
+    icon: 'team',
+  },
+]
 
-  return {
-    heroTitle: 'Beheer projecten\\nzonder ruis',
-    heroSubtitle: 'TaskPilot geeft je team kanbanborden, deadlines, labels en comments in één overzichtelijke workspace.',
-    ctaStart: 'Start gratis',
-    ctaLearn: 'Meer info',
-    featuresLabel: 'Functies',
-    featuresTitle: 'Alles wat je team nodig heeft',
-    howLabel: 'Hoe het werkt',
-    howTitle: 'Binnen minuten live',
-    footerAbout: 'Over',
-    footerContact: 'Contact',
-  }
-})
-
-const features = computed(() => {
-  if (preferences.language === 'en') {
-    return [
-      { title: 'Kanban Boards', desc: 'Organize tasks into groups with drag-and-drop between columns.', icon: 'board' },
-      { title: 'Labels & Priorities', desc: 'Tag tasks with custom color labels and four priority levels.', icon: 'label' },
-      { title: 'Deadlines & Calendar', desc: 'Assign due dates and view all tasks in a monthly calendar.', icon: 'calendar' },
-      { title: 'Comments', desc: 'Discuss tasks with your team directly in the task detail view.', icon: 'comment' },
-      { title: 'Public Share Links', desc: 'Share a read-only view of any board with stakeholders via a link.', icon: 'share' },
-      { title: 'Team Roles', desc: 'Invite members as Owner, Admin, or User with scoped permissions.', icon: 'team' },
-    ]
-  }
-
-  return [
-    { title: 'Kanban-borden', desc: 'Organiseer taken in groepen met drag-and-drop tussen kolommen.', icon: 'board' },
-    { title: 'Labels en prioriteit', desc: 'Label taken met je eigen kleuren en vier prioriteitsniveaus.', icon: 'label' },
-    { title: 'Deadlines en kalender', desc: 'Voeg deadlines toe en bekijk alle taken in de maandkalender.', icon: 'calendar' },
-    { title: 'Comments', desc: 'Bespreek taken direct met je team in de taakdetails.', icon: 'comment' },
-    { title: 'Publieke deellinks', desc: 'Deel een read-only bord met stakeholders via een link.', icon: 'share' },
-    { title: 'Teamrollen', desc: 'Nodig leden uit als Owner, Admin of User met duidelijke rechten.', icon: 'team' },
-  ]
-})
-
-const steps = computed(() => {
-  if (preferences.language === 'en') {
-    return [
-      { n: '01', title: 'Create a project', desc: 'Set up a project, define your board groups, and invite your team with the appropriate roles.' },
-      { n: '02', title: 'Build your board', desc: 'Add tasks, assign labels, set priorities, attach deadlines, and move cards between groups as work progresses.' },
-      { n: '03', title: 'Track and share', desc: 'Monitor deadlines in the calendar view and generate a read-only public link for anyone who needs visibility without an account.' },
-    ]
-  }
-
-  return [
-    { n: '01', title: 'Maak een project', desc: 'Maak een project aan, zet je groepen op en nodig je team uit met de juiste rollen.' },
-    { n: '02', title: 'Bouw je bord', desc: 'Voeg taken toe, koppel labels, zet prioriteiten en verplaats kaarten terwijl werk vordert.' },
-    { n: '03', title: 'Volg en deel', desc: 'Volg deadlines in de kalender en deel een read-only link voor iedereen die mee wil kijken.' },
-  ]
-})
+const steps = [
+  {
+    n: '01',
+    title: 'Create a project',
+    desc: 'Set up a project, define your board groups, and invite your team with the appropriate roles.',
+  },
+  {
+    n: '02',
+    title: 'Build your board',
+    desc: 'Add tasks, assign labels, set priorities, attach deadlines, and move cards between groups as work progresses.',
+  },
+  {
+    n: '03',
+    title: 'Track and share',
+    desc: 'Monitor deadlines in the calendar view and generate a read-only public link for anyone who needs visibility without an account.',
+  },
+]
 </script>
 
 <template>
@@ -78,21 +59,21 @@ const steps = computed(() => {
 
     <!-- Hero -->
     <section class="hero">
-      <h1 class="hero__title">{{ copy.heroTitle.split('\\n')[0] }}<br>{{ copy.heroTitle.split('\\n')[1] }}</h1>
+      <h1 class="hero__title">Manage projects<br>without the noise</h1>
       <p class="hero__subtitle">
-        {{ copy.heroSubtitle }}
+        TaskPilot gives your team kanban boards, deadlines, labels, and comments in one focused workspace.
       </p>
       <div class="hero__cta">
-        <router-link to="/register" class="btn btn-primary btn-lg">{{ copy.ctaStart }}</router-link>
-        <router-link to="/about" class="btn btn-ghost btn-lg">{{ copy.ctaLearn }}</router-link>
+        <router-link to="/register" class="btn btn-primary btn-lg">Get started free</router-link>
+        <router-link to="/about" class="btn btn-ghost btn-lg">Learn more</router-link>
       </div>
     </section>
 
     <!-- Features -->
     <section class="features">
       <div class="features__inner">
-        <div class="section-label">{{ copy.featuresLabel }}</div>
-        <h2 class="section-title">{{ copy.featuresTitle }}</h2>
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything your team needs</h2>
         <div class="features__grid">
           <div class="feature-card" v-for="f in features" :key="f.title">
             <div class="feature-icon">
@@ -115,8 +96,8 @@ const steps = computed(() => {
     <!-- How it works -->
     <section class="how">
       <div class="how__inner">
-        <div class="section-label">{{ copy.howLabel }}</div>
-        <h2 class="section-title">{{ copy.howTitle }}</h2>
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Up and running in minutes</h2>
         <div class="how__steps">
           <div class="step" v-for="s in steps" :key="s.n">
             <span class="step__n">{{ s.n }}</span>
@@ -131,7 +112,7 @@ const steps = computed(() => {
 
     <!-- Footer -->
     <footer class="home-footer">
-      <p>2026 TaskPilot &nbsp;&middot;&nbsp; <router-link to="/about">{{ copy.footerAbout }}</router-link> &nbsp;&middot;&nbsp; <router-link to="/contact">{{ copy.footerContact }}</router-link></p>
+      <p>2026 TaskPilot &nbsp;&middot;&nbsp; <router-link to="/about">About</router-link> &nbsp;&middot;&nbsp; <router-link to="/contact">Contact</router-link></p>
     </footer>
   </div>
 </template>

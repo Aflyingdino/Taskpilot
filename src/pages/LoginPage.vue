@@ -1,45 +1,14 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { login, authLoading, authError, clearAuthError } from '@/stores/authStore'
 import { fetchProjects } from '@/stores/projectStore'
-import { preferences } from '@/stores/preferencesStore'
 
 const router = useRouter()
 const route = useRoute()
 
 const email = ref('')
 const password = ref('')
-
-const copy = computed(() => {
-  if (preferences.language === 'en') {
-    return {
-      title: 'Welcome back',
-      subtitle: 'Log in to your account',
-      email: 'Email',
-      emailPlaceholder: 'you@example.com',
-      password: 'Password',
-      passwordPlaceholder: '••••••••',
-      loading: 'Logging in…',
-      login: 'Log in',
-      switchText: "Don't have an account?",
-      switchCta: 'Sign up',
-    }
-  }
-
-  return {
-    title: 'Welkom terug',
-    subtitle: 'Log in op je account',
-    email: 'E-mail',
-    emailPlaceholder: 'jij@voorbeeld.nl',
-    password: 'Wachtwoord',
-    passwordPlaceholder: '••••••••',
-    loading: 'Bezig met inloggen…',
-    login: 'Inloggen',
-    switchText: 'Nog geen account?',
-    switchCta: 'Registreren',
-  }
-})
 
 async function handleLogin() {
   clearAuthError()
@@ -59,28 +28,28 @@ async function handleLogin() {
         <img src="/logo.png" alt="TaskPilot logo" width="28" height="28" />
         <span>TaskPilot</span>
       </router-link>
-      <h1 class="auth-title">{{ copy.title }}</h1>
-      <p class="auth-sub">{{ copy.subtitle }}</p>
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-sub">Log in to your account</p>
 
       <div v-if="authError" class="auth-error">{{ authError }}</div>
 
       <form class="auth-form" @submit.prevent="handleLogin">
         <label class="form-label">
-          {{ copy.email }}
-          <input v-model="email" type="email" class="form-input" :placeholder="copy.emailPlaceholder" autocomplete="email" />
+          Email
+          <input v-model="email" type="email" class="form-input" placeholder="you@example.com" autocomplete="email" />
         </label>
         <label class="form-label">
-          {{ copy.password }}
-          <input v-model="password" type="password" class="form-input" :placeholder="copy.passwordPlaceholder" autocomplete="current-password" />
+          Password
+          <input v-model="password" type="password" class="form-input" placeholder="••••••••" autocomplete="current-password" />
         </label>
         <button type="submit" class="btn-submit" :disabled="authLoading">
           <span v-if="authLoading" class="spinner"></span>
-          {{ authLoading ? copy.loading : copy.login }}
+          {{ authLoading ? 'Logging in…' : 'Log in' }}
         </button>
       </form>
 
       <p class="auth-switch">
-        {{ copy.switchText }} <router-link to="/register">{{ copy.switchCta }}</router-link>
+        Don't have an account? <router-link to="/register">Sign up</router-link>
       </p>
     </div>
   </div>

@@ -6,10 +6,8 @@ import router from './router'
 import { api } from './utils/api'
 import { checkSession } from './stores/authStore'
 import { fetchProjects } from './stores/projectStore'
-import { applyPreferencesFromAccount } from './stores/preferencesStore'
 
 ;(async () => {
-  applyPreferencesFromAccount({ preferredTheme: 'light', preferredLanguage: 'nl' })
   await api.initSecurity().catch(() => {})
   const loggedIn = await checkSession()
   if (loggedIn) await fetchProjects()
