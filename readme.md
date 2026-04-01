@@ -54,21 +54,27 @@ Vecta is a project and board management app with a Vue frontend and a PHP/MySQL 
 npm ci
 ```
 
-2. Export environment variables for your shell/session (example):
+2. Create a local environment file:
 
 ```bash
-export APP_ENV=development
-export APP_DEBUG=1
-export APP_URL=http://localhost:5173
-export ALLOWED_ORIGINS=http://localhost:5173
-export DB_HOST=127.0.0.1
-export DB_PORT=3306
-export DB_NAME=vecta
-export DB_USER=vecta
-export DB_PASS=change_me
+cp .env.example .env
 ```
 
-You can also put these in your shell profile (for example `~/.bashrc`) for convenience.
+Then edit `.env` and set your local values.
+
+Example values:
+
+```bash
+APP_ENV=development
+APP_DEBUG=1
+APP_URL=http://localhost:5173
+ALLOWED_ORIGINS=http://localhost:5173
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=vecta
+DB_USER=vecta
+DB_PASS=change_me
+```
 
 3. Create database and user (example):
 
