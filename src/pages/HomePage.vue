@@ -64,7 +64,7 @@ const steps = [
         TaskPilot gives your team kanban boards, deadlines, labels, and comments in one focused workspace.
       </p>
       <div class="hero__cta">
-        <router-link to="/register" class="btn btn-primary btn-lg">Get started free</router-link>
+        <router-link to="/register" class="btn btn-primary btn-lg">Get started</router-link>
         <router-link to="/about" class="btn btn-ghost btn-lg">Learn more</router-link>
       </div>
     </section>

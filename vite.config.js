@@ -18,10 +18,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/Vecta/api': {
+      '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/Vecta/, ''),
       },
     },
   },

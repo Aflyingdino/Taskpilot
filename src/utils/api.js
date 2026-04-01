@@ -1,5 +1,17 @@
-const BASE = 'api/index.php'
-const FALLBACK_BASE = 'api/index.php'
+const DEFAULT_API_BASE = '/api/index.php'
+const envApiBase = (import.meta.env.VITE_API_BASE || '').trim()
+
+function withLeadingSlash(value) {
+  if (!value) return ''
+  return value.startsWith('/') ? value : `/${value}`
+}
+
+function withoutTrailingSlash(value) {
+  return value.endsWith('/') ? value.slice(0, -1) : value
+}
+
+const BASE = withoutTrailingSlash(withLeadingSlash(envApiBase || DEFAULT_API_BASE))
+const FALLBACK_BASE = BASE
 const CSRF_HEADER = 'X-CSRF-Token'
 
 let csrfToken = null
