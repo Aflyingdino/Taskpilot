@@ -3,7 +3,6 @@ import AppSidebar from './AppSidebar.vue'
 import TaskModal from './TaskModal.vue'
 import TaskDetail from './TaskDetail.vue'
 import ProjectSettings from './ProjectSettings.vue'
-import AppSettings from './AppSettings.vue'
 </script>
 
 <template>
@@ -16,7 +15,6 @@ import AppSettings from './AppSettings.vue'
     <TaskModal />
     <TaskDetail />
     <ProjectSettings />
-    <AppSettings />
   </div>
 </template>
 

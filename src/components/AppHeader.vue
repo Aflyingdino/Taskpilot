@@ -92,7 +92,13 @@ const isBoard = computed(() => route.name === 'board')
 }
 .project-title {
   font-size: 14px;
- theme-btn {
+  font-weight: 700;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.theme-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -106,12 +112,6 @@ const isBoard = computed(() => route.name === 'board')
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .theme-btn:hover { background: var(--color-surface-2); color: var(--color-text-1); }
-. font-weight: 700;
-  color: var(--color-text-1);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .page-title-text { font-size: 14px; font-weight: 600; color: var(--color-text-1); }
 .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .settings-btn {
