@@ -12,10 +12,18 @@ function loadEnvFile(string $path): void
     }
 
     foreach ($lines as $line) {
+        if (str_starts_with($line, "\xEF\xBB\xBF")) {
+            $line = substr($line, 3);
+        }
+
         $trimmed = trim($line);
 
         if ($trimmed === '' || str_starts_with($trimmed, '#')) {
             continue;
+        }
+
+        if (str_starts_with($trimmed, 'export ')) {
+            $trimmed = trim(substr($trimmed, 7));
         }
 
         $parts = explode('=', $trimmed, 2);
@@ -36,6 +44,11 @@ function loadEnvFile(string $path): void
             $last = $value[$length - 1];
             if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
                 $value = substr($value, 1, -1);
+            }
+        } else {
+            $commentPos = strpos($value, '#');
+            if ($commentPos !== false) {
+                $value = rtrim(substr($value, 0, $commentPos));
             }
         }
 

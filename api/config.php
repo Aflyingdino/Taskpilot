@@ -5,11 +5,12 @@
 
 require_once __DIR__ . '/dotenv.php';
 loadEnvFile(__DIR__ . '/../.env');
+loadEnvFile(__DIR__ . '/.env');
 
 function envValue(string $key, ?string $default = null): ?string
 {
     $value = getenv($key);
-    if ($value === false || $value === '') {
+    if ($value === false) {
         static $fileSecrets = null;
 
         if ($fileSecrets === null) {
@@ -24,7 +25,7 @@ function envValue(string $key, ?string $default = null): ?string
         }
 
         $fileValue = $fileSecrets[$key] ?? null;
-        if (is_string($fileValue) && $fileValue !== '') {
+        if (is_string($fileValue)) {
             return $fileValue;
         }
 
